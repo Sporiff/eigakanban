@@ -35,15 +35,26 @@ CREATE TABLE items (
                        created_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE board_items (
-                             board_item_id BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
-                             item_id BIGINT,
-                             FOREIGN KEY (item_id) REFERENCES items (item_id) ON DELETE CASCADE,
-                             board_id BIGINT,
-                             FOREIGN KEY (board_id) REFERENCES boards (board_id) ON DELETE CASCADE,
-                             user_id BIGINT,
-                             FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
-                             created_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE kbcolumns (
+                           column_id BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
+                           name TEXT NOT NULL,
+                           board_id BIGINT,
+                           FOREIGN KEY (board_id) REFERENCES boards (board_id) ON DELETE CASCADE,
+                           user_id BIGINT,
+                           FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
+                           position INT NOT NULL,
+                           created_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE column_items (
+                              column_item_id BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
+                              column_id BIGINT,
+                              FOREIGN KEY (column_id) REFERENCES kbcolumns (column_id) ON DELETE CASCADE,
+                              item_id BIGINT,
+                              FOREIGN KEY (item_id) REFERENCES items (item_id) ON DELETE CASCADE,
+                              user_id BIGINT,
+                              FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
+                              created_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE reviews (
@@ -61,11 +72,13 @@ CREATE TABLE reviews (
 -- +goose StatementBegin
 DROP TABLE reviews;
 
-DROP TABLE board_items;
+DROP TABLE column_items;
 
 DROP TABLE items;
 
 DROP TABLE statuses;
+
+DROP TABLE kbcolumns;
 
 DROP TABLE boards;
 
