@@ -49,12 +49,15 @@ func (q *Queries) AddBoard(ctx context.Context, arg AddBoardParams) (AddBoardRow
 }
 
 const addColumn = `-- name: AddColumn :one
-INSERT INTO
-    kbcolumns (name, board_id, user_id)
+WITH max_position AS (
+    SELECT COALESCE(MAX(position), 0) AS max_position
+    FROM kbcolumns
+    WHERE board_id = $2
+)
+INSERT INTO kbcolumns (name, board_id, user_id, position)
 VALUES
-    ($1, $2, $3)
-RETURNING
-    column_id, name, board_id, user_id, position, created_date
+    ($1, $2, $3, (SELECT max_position + 1 FROM max_position))
+RETURNING column_id, name, board_id, user_id, position, created_date
 `
 
 type AddColumnParams struct {
@@ -65,6 +68,38 @@ type AddColumnParams struct {
 
 func (q *Queries) AddColumn(ctx context.Context, arg AddColumnParams) (Kbcolumn, error) {
 	row := q.db.QueryRow(ctx, addColumn, arg.Name, arg.BoardID, arg.UserID)
+	var i Kbcolumn
+	err := row.Scan(
+		&i.ColumnID,
+		&i.Name,
+		&i.BoardID,
+		&i.UserID,
+		&i.Position,
+		&i.CreatedDate,
+	)
+	return i, err
+}
+
+const addColumnAtPosition = `-- name: AddColumnAtPosition :one
+WITH shift_columns AS (
+    UPDATE kbcolumns
+        SET position = position + 1
+        WHERE board_id = $2 AND position >= $3
+        RETURNING column_id, position
+)
+INSERT INTO kbcolumns (name, board_id, user_id, position)
+VALUES ($1, $2, $3, $3)
+RETURNING column_id, name, board_id, user_id, position, created_date
+`
+
+type AddColumnAtPositionParams struct {
+	Name    string
+	BoardID pgtype.Int8
+	UserID  pgtype.Int8
+}
+
+func (q *Queries) AddColumnAtPosition(ctx context.Context, arg AddColumnAtPositionParams) (Kbcolumn, error) {
+	row := q.db.QueryRow(ctx, addColumnAtPosition, arg.Name, arg.BoardID, arg.UserID)
 	var i Kbcolumn
 	err := row.Scan(
 		&i.ColumnID,
@@ -243,9 +278,15 @@ func (q *Queries) DeleteBoard(ctx context.Context, boardID pgtype.Int8) error {
 }
 
 const deleteColumn = `-- name: DeleteColumn :exec
-DELETE FROM kbcolumns
-WHERE
-    column_id = $1
+WITH deleted_column AS (
+    DELETE FROM kbcolumns as kc
+        WHERE kc.column_id = $1
+        RETURNING kc.position, kc.board_id
+)
+UPDATE kbcolumns
+SET position = position - 1
+WHERE board_id = (SELECT board_id FROM deleted_column)
+  AND position > (SELECT position FROM deleted_column)
 `
 
 func (q *Queries) DeleteColumn(ctx context.Context, columnID pgtype.Int8) error {
@@ -850,31 +891,55 @@ func (q *Queries) GetUserById(ctx context.Context, userID pgtype.Int8) (GetUserB
 }
 
 const moveColumn = `-- name: MoveColumn :one
+WITH neighbors AS (
+    SELECT column_id, position
+    FROM kbcolumns
+    WHERE board_id = $2 AND column_id != $1
+    ORDER BY position
+),
+     updated_positions AS (
+         UPDATE kbcolumns
+             SET position = CASE
+                                WHEN kbcolumns.column_id = $1 THEN $2  -- New position for the moved column
+                                WHEN kbcolumns.column_id = $3 THEN $4  -- Update neighbor's position
+                                ELSE kbcolumns.position
+                 END
+             WHERE kbcolumns.board_id = $5
+             RETURNING kbcolumns.column_id, kbcolumns.position
+     )
 UPDATE kbcolumns
-SET
-    position = $2
-WHERE
-    column_id = $1
-RETURNING
-    column_id, name, board_id, user_id, position, created_date
+SET position = kbcolumns.position + CASE
+                                        WHEN kbcolumns.column_id = $1 THEN -1  -- Move column left
+                                        WHEN kbcolumns.column_id = $2 THEN +1  -- Move column right
+                                        ELSE 0
+    END
+WHERE kbcolumns.column_id IN (SELECT updated_positions.column_id FROM updated_positions)
+RETURNING kbcolumns.column_id, kbcolumns.position
 `
 
 type MoveColumnParams struct {
+	ColumnID   pgtype.Int8
+	ColumnID_2 pgtype.Int8
+	ColumnID_3 pgtype.Int8
+	Position   int32
+	BoardID    pgtype.Int8
+}
+
+type MoveColumnRow struct {
 	ColumnID pgtype.Int8
 	Position int32
 }
 
-func (q *Queries) MoveColumn(ctx context.Context, arg MoveColumnParams) (Kbcolumn, error) {
-	row := q.db.QueryRow(ctx, moveColumn, arg.ColumnID, arg.Position)
-	var i Kbcolumn
-	err := row.Scan(
-		&i.ColumnID,
-		&i.Name,
-		&i.BoardID,
-		&i.UserID,
-		&i.Position,
-		&i.CreatedDate,
+func (q *Queries) MoveColumn(ctx context.Context, arg MoveColumnParams) (MoveColumnRow, error) {
+	row := q.db.QueryRow(ctx, moveColumn,
+		arg.ColumnID,
+		arg.ColumnID_2,
+		arg.ColumnID_3,
+		arg.Position,
+		arg.BoardID,
 	)
+	var i MoveColumnRow
+	err := row.Scan(&i.ColumnID, &i.Position)
 	return i, err
 }
 
