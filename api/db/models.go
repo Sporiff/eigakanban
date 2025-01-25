@@ -16,18 +16,28 @@ type Board struct {
 	CreatedDate pgtype.Timestamptz
 }
 
-type BoardItem struct {
-	BoardItemID pgtype.Int8
-	ItemID      pgtype.Int8
-	BoardID     pgtype.Int8
-	UserID      pgtype.Int8
-	CreatedDate pgtype.Timestamptz
+type ColumnItem struct {
+	ColumnItemID pgtype.Int8
+	ColumnID     pgtype.Int8
+	ItemID       pgtype.Int8
+	UserID       pgtype.Int8
+	CreatedDate  pgtype.Timestamptz
+	Position     pgtype.Int4
 }
 
 type Item struct {
 	ItemID      pgtype.Int8
 	Title       string
 	StatusID    pgtype.Int8
+	CreatedDate pgtype.Timestamptz
+}
+
+type Kbcolumn struct {
+	ColumnID    pgtype.Int8
+	Name        string
+	BoardID     pgtype.Int8
+	UserID      pgtype.Int8
+	Position    int32
 	CreatedDate pgtype.Timestamptz
 }
 

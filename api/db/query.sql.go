@@ -48,33 +48,69 @@ func (q *Queries) AddBoard(ctx context.Context, arg AddBoardParams) (AddBoardRow
 	return i, err
 }
 
-const addBoardItem = `-- name: AddBoardItem :one
+const addColumn = `-- name: AddColumn :one
 INSERT INTO
-    board_items (item_id, board_id, user_id)
+    kbcolumns (name, board_id, user_id)
 VALUES
     ($1, $2, $3)
 RETURNING
-    board_item_id,
-    item_id,
-    board_id
+    column_id, name, board_id, user_id, position, created_date
 `
 
-type AddBoardItemParams struct {
-	ItemID  pgtype.Int8
+type AddColumnParams struct {
+	Name    string
 	BoardID pgtype.Int8
 	UserID  pgtype.Int8
 }
 
-type AddBoardItemRow struct {
-	BoardItemID pgtype.Int8
-	ItemID      pgtype.Int8
-	BoardID     pgtype.Int8
+func (q *Queries) AddColumn(ctx context.Context, arg AddColumnParams) (Kbcolumn, error) {
+	row := q.db.QueryRow(ctx, addColumn, arg.Name, arg.BoardID, arg.UserID)
+	var i Kbcolumn
+	err := row.Scan(
+		&i.ColumnID,
+		&i.Name,
+		&i.BoardID,
+		&i.UserID,
+		&i.Position,
+		&i.CreatedDate,
+	)
+	return i, err
 }
 
-func (q *Queries) AddBoardItem(ctx context.Context, arg AddBoardItemParams) (AddBoardItemRow, error) {
-	row := q.db.QueryRow(ctx, addBoardItem, arg.ItemID, arg.BoardID, arg.UserID)
-	var i AddBoardItemRow
-	err := row.Scan(&i.BoardItemID, &i.ItemID, &i.BoardID)
+const addColumnItemAtPosition = `-- name: AddColumnItemAtPosition :one
+WITH moved_items AS (
+    UPDATE column_items
+        SET position = position + 1
+        WHERE column_id = $1 AND position >= $2
+        RETURNING column_item_id, column_id, item_id, position
+)
+INSERT INTO column_items (column_id, item_id, user_id, position)
+VALUES ($1, $2, $3, $2)
+RETURNING column_item_id, column_id, item_id, position
+`
+
+type AddColumnItemAtPositionParams struct {
+	ColumnID pgtype.Int8
+	ItemID   pgtype.Int8
+	UserID   pgtype.Int8
+}
+
+type AddColumnItemAtPositionRow struct {
+	ColumnItemID pgtype.Int8
+	ColumnID     pgtype.Int8
+	ItemID       pgtype.Int8
+	Position     pgtype.Int4
+}
+
+func (q *Queries) AddColumnItemAtPosition(ctx context.Context, arg AddColumnItemAtPositionParams) (AddColumnItemAtPositionRow, error) {
+	row := q.db.QueryRow(ctx, addColumnItemAtPosition, arg.ColumnID, arg.ItemID, arg.UserID)
+	var i AddColumnItemAtPositionRow
+	err := row.Scan(
+		&i.ColumnItemID,
+		&i.ColumnID,
+		&i.ItemID,
+		&i.Position,
+	)
 	return i, err
 }
 
@@ -206,14 +242,31 @@ func (q *Queries) DeleteBoard(ctx context.Context, boardID pgtype.Int8) error {
 	return err
 }
 
-const deleteBoardItem = `-- name: DeleteBoardItem :exec
-DELETE FROM board_items
+const deleteColumn = `-- name: DeleteColumn :exec
+DELETE FROM kbcolumns
 WHERE
-    board_item_id = $1
+    column_id = $1
 `
 
-func (q *Queries) DeleteBoardItem(ctx context.Context, boardItemID pgtype.Int8) error {
-	_, err := q.db.Exec(ctx, deleteBoardItem, boardItemID)
+func (q *Queries) DeleteColumn(ctx context.Context, columnID pgtype.Int8) error {
+	_, err := q.db.Exec(ctx, deleteColumn, columnID)
+	return err
+}
+
+const deleteColumnItem = `-- name: DeleteColumnItem :exec
+WITH deleted_item AS (
+    DELETE FROM column_items as ci
+        WHERE ci.column_item_id = $1
+        RETURNING ci.position, ci.column_id
+)
+UPDATE column_items
+SET position = position - 1
+WHERE column_id = (SELECT di.column_id FROM deleted_item AS di)
+  AND position > (SELECT di.position FROM deleted_item AS di)
+`
+
+func (q *Queries) DeleteColumnItem(ctx context.Context, columnItemID pgtype.Int8) error {
+	_, err := q.db.Exec(ctx, deleteColumnItem, columnItemID)
 	return err
 }
 
@@ -393,130 +446,6 @@ func (q *Queries) GetBoardById(ctx context.Context, boardID pgtype.Int8) (GetBoa
 	return i, err
 }
 
-const getBoardItem = `-- name: GetBoardItem :one
-SELECT
-    board_item_id,
-    item_id,
-    board_item_id
-FROM
-    board_items
-WHERE
-    board_item_id = $1
-LIMIT
-    1
-`
-
-type GetBoardItemRow struct {
-	BoardItemID   pgtype.Int8
-	ItemID        pgtype.Int8
-	BoardItemID_2 pgtype.Int8
-}
-
-func (q *Queries) GetBoardItem(ctx context.Context, boardItemID pgtype.Int8) (GetBoardItemRow, error) {
-	row := q.db.QueryRow(ctx, getBoardItem, boardItemID)
-	var i GetBoardItemRow
-	err := row.Scan(&i.BoardItemID, &i.ItemID, &i.BoardItemID_2)
-	return i, err
-}
-
-const getBoardItemsForBoard = `-- name: GetBoardItemsForBoard :many
-SELECT
-    board_item_id,
-    item_id,
-    board_item_id
-FROM
-    board_items
-WHERE
-    board_id = $1
-ORDER BY
-    created_date
-LIMIT
-    $2
-    OFFSET
-    $3
-`
-
-type GetBoardItemsForBoardParams struct {
-	BoardID pgtype.Int8
-	Limit   int32
-	Offset  int32
-}
-
-type GetBoardItemsForBoardRow struct {
-	BoardItemID   pgtype.Int8
-	ItemID        pgtype.Int8
-	BoardItemID_2 pgtype.Int8
-}
-
-func (q *Queries) GetBoardItemsForBoard(ctx context.Context, arg GetBoardItemsForBoardParams) ([]GetBoardItemsForBoardRow, error) {
-	rows, err := q.db.Query(ctx, getBoardItemsForBoard, arg.BoardID, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetBoardItemsForBoardRow
-	for rows.Next() {
-		var i GetBoardItemsForBoardRow
-		if err := rows.Scan(&i.BoardItemID, &i.ItemID, &i.BoardItemID_2); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getBoardItemsForUser = `-- name: GetBoardItemsForUser :many
-SELECT
-    board_item_id,
-    item_id,
-    board_item_id
-FROM
-    board_items
-WHERE
-    user_id = $1
-ORDER BY
-    created_date
-LIMIT
-    $2
-    OFFSET
-    $3
-`
-
-type GetBoardItemsForUserParams struct {
-	UserID pgtype.Int8
-	Limit  int32
-	Offset int32
-}
-
-type GetBoardItemsForUserRow struct {
-	BoardItemID   pgtype.Int8
-	ItemID        pgtype.Int8
-	BoardItemID_2 pgtype.Int8
-}
-
-func (q *Queries) GetBoardItemsForUser(ctx context.Context, arg GetBoardItemsForUserParams) ([]GetBoardItemsForUserRow, error) {
-	rows, err := q.db.Query(ctx, getBoardItemsForUser, arg.UserID, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetBoardItemsForUserRow
-	for rows.Next() {
-		var i GetBoardItemsForUserRow
-		if err := rows.Scan(&i.BoardItemID, &i.ItemID, &i.BoardItemID_2); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getBoardsForUser = `-- name: GetBoardsForUser :many
 SELECT
     name,
@@ -554,6 +483,155 @@ func (q *Queries) GetBoardsForUser(ctx context.Context, arg GetBoardsForUserPara
 	for rows.Next() {
 		var i GetBoardsForUserRow
 		if err := rows.Scan(&i.Name, &i.Description); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getColumn = `-- name: GetColumn :one
+SELECT column_id, name, board_id, user_id, position, created_date FROM kbcolumns
+WHERE column_id = $1
+`
+
+func (q *Queries) GetColumn(ctx context.Context, columnID pgtype.Int8) (Kbcolumn, error) {
+	row := q.db.QueryRow(ctx, getColumn, columnID)
+	var i Kbcolumn
+	err := row.Scan(
+		&i.ColumnID,
+		&i.Name,
+		&i.BoardID,
+		&i.UserID,
+		&i.Position,
+		&i.CreatedDate,
+	)
+	return i, err
+}
+
+const getColumns = `-- name: GetColumns :many
+SELECT column_id, name, board_id, user_id, position, created_date FROM kbcolumns
+ORDER BY
+    created_date
+LIMIT
+    $1
+    OFFSET
+    $2
+`
+
+type GetColumnsParams struct {
+	Limit  int32
+	Offset int32
+}
+
+func (q *Queries) GetColumns(ctx context.Context, arg GetColumnsParams) ([]Kbcolumn, error) {
+	rows, err := q.db.Query(ctx, getColumns, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Kbcolumn
+	for rows.Next() {
+		var i Kbcolumn
+		if err := rows.Scan(
+			&i.ColumnID,
+			&i.Name,
+			&i.BoardID,
+			&i.UserID,
+			&i.Position,
+			&i.CreatedDate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getColumnsForBoard = `-- name: GetColumnsForBoard :many
+SELECT column_id, name, board_id, user_id, position, created_date FROM kbcolumns
+WHERE board_id = $1
+ORDER BY
+    position
+LIMIT
+    $2
+    OFFSET
+    $3
+`
+
+type GetColumnsForBoardParams struct {
+	BoardID pgtype.Int8
+	Limit   int32
+	Offset  int32
+}
+
+func (q *Queries) GetColumnsForBoard(ctx context.Context, arg GetColumnsForBoardParams) ([]Kbcolumn, error) {
+	rows, err := q.db.Query(ctx, getColumnsForBoard, arg.BoardID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Kbcolumn
+	for rows.Next() {
+		var i Kbcolumn
+		if err := rows.Scan(
+			&i.ColumnID,
+			&i.Name,
+			&i.BoardID,
+			&i.UserID,
+			&i.Position,
+			&i.CreatedDate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getColumnsForUser = `-- name: GetColumnsForUser :many
+SELECT column_id, name, board_id, user_id, position, created_date FROM kbcolumns
+WHERE user_id = $1
+ORDER BY
+    created_date
+LIMIT
+    $2
+    OFFSET
+    $3
+`
+
+type GetColumnsForUserParams struct {
+	UserID pgtype.Int8
+	Limit  int32
+	Offset int32
+}
+
+func (q *Queries) GetColumnsForUser(ctx context.Context, arg GetColumnsForUserParams) ([]Kbcolumn, error) {
+	rows, err := q.db.Query(ctx, getColumnsForUser, arg.UserID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Kbcolumn
+	for rows.Next() {
+		var i Kbcolumn
+		if err := rows.Scan(
+			&i.ColumnID,
+			&i.Name,
+			&i.BoardID,
+			&i.UserID,
+			&i.Position,
+			&i.CreatedDate,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -771,6 +849,166 @@ func (q *Queries) GetUserById(ctx context.Context, userID pgtype.Int8) (GetUserB
 	return i, err
 }
 
+const moveColumn = `-- name: MoveColumn :one
+UPDATE kbcolumns
+SET
+    position = $2
+WHERE
+    column_id = $1
+RETURNING
+    column_id, name, board_id, user_id, position, created_date
+`
+
+type MoveColumnParams struct {
+	ColumnID pgtype.Int8
+	Position int32
+}
+
+func (q *Queries) MoveColumn(ctx context.Context, arg MoveColumnParams) (Kbcolumn, error) {
+	row := q.db.QueryRow(ctx, moveColumn, arg.ColumnID, arg.Position)
+	var i Kbcolumn
+	err := row.Scan(
+		&i.ColumnID,
+		&i.Name,
+		&i.BoardID,
+		&i.UserID,
+		&i.Position,
+		&i.CreatedDate,
+	)
+	return i, err
+}
+
+const moveColumnItemDown = `-- name: MoveColumnItemDown :one
+WITH current_position AS (
+    SELECT position
+    FROM column_items AS ci
+    WHERE ci.column_item_id = $1
+),
+     items_to_shift AS (
+         SELECT ci.column_item_id, ci.position
+         FROM column_items AS ci
+         WHERE ci.column_id = $2
+           AND ci.position = (SELECT cp.position FROM current_position AS cp) + 1
+     )
+UPDATE column_items AS ci
+SET position = CASE
+                   WHEN ci.column_item_id = $1 THEN ci.position + 1
+                   WHEN ci.column_item_id IN (SELECT its.column_item_id FROM items_to_shift AS its) THEN ci.position - 1
+                   ELSE ci.position
+    END
+WHERE ci.column_item_id IN (SELECT its.column_item_id FROM items_to_shift AS its)
+   OR ci.column_item_id = $1
+RETURNING ci.column_item_id, ci.column_id, ci.item_id, ci.position
+`
+
+type MoveColumnItemDownParams struct {
+	ColumnItemID pgtype.Int8
+	ColumnID     pgtype.Int8
+}
+
+type MoveColumnItemDownRow struct {
+	ColumnItemID pgtype.Int8
+	ColumnID     pgtype.Int8
+	ItemID       pgtype.Int8
+	Position     pgtype.Int4
+}
+
+func (q *Queries) MoveColumnItemDown(ctx context.Context, arg MoveColumnItemDownParams) (MoveColumnItemDownRow, error) {
+	row := q.db.QueryRow(ctx, moveColumnItemDown, arg.ColumnItemID, arg.ColumnID)
+	var i MoveColumnItemDownRow
+	err := row.Scan(
+		&i.ColumnItemID,
+		&i.ColumnID,
+		&i.ItemID,
+		&i.Position,
+	)
+	return i, err
+}
+
+const moveColumnItemUp = `-- name: MoveColumnItemUp :one
+WITH current_position AS (
+    SELECT position
+    FROM column_items AS ci
+    WHERE ci.column_item_id = $1
+),
+     items_to_shift AS (
+         SELECT ci.column_item_id, ci.position
+         FROM column_items AS ci
+         WHERE ci.column_id = $2
+           AND ci.position = (SELECT cp.position FROM current_position AS cp) - 1
+     )
+UPDATE column_items AS ci
+SET position = CASE
+                   WHEN ci.column_item_id = $1 THEN ci.position - 1
+                   WHEN ci.column_item_id IN (SELECT its.column_item_id FROM items_to_shift AS its) THEN ci.position + 1
+                   ELSE ci.position
+    END
+WHERE ci.column_item_id IN (SELECT its.column_item_id FROM items_to_shift AS its)
+   OR ci.column_item_id = $1
+RETURNING ci.column_item_id, ci.column_id, ci.item_id, ci.position
+`
+
+type MoveColumnItemUpParams struct {
+	ColumnItemID pgtype.Int8
+	ColumnID     pgtype.Int8
+}
+
+type MoveColumnItemUpRow struct {
+	ColumnItemID pgtype.Int8
+	ColumnID     pgtype.Int8
+	ItemID       pgtype.Int8
+	Position     pgtype.Int4
+}
+
+func (q *Queries) MoveColumnItemUp(ctx context.Context, arg MoveColumnItemUpParams) (MoveColumnItemUpRow, error) {
+	row := q.db.QueryRow(ctx, moveColumnItemUp, arg.ColumnItemID, arg.ColumnID)
+	var i MoveColumnItemUpRow
+	err := row.Scan(
+		&i.ColumnItemID,
+		&i.ColumnID,
+		&i.ItemID,
+		&i.Position,
+	)
+	return i, err
+}
+
+const moveItemToColumn = `-- name: MoveItemToColumn :one
+WITH moved_items AS (
+    UPDATE column_items AS ci
+        SET position = position + 1
+        WHERE ci.column_id = $2 AND ci.position >= (SELECT ci2.position FROM column_items AS ci2 WHERE ci2.column_item_id = $1)
+        RETURNING ci.column_item_id, ci.column_id, ci.item_id, ci.position
+)
+UPDATE column_items AS ci
+SET column_id = $2
+WHERE ci.column_item_id = $1
+RETURNING ci.column_item_id, ci.column_id, ci.item_id, ci.position
+`
+
+type MoveItemToColumnParams struct {
+	ColumnItemID pgtype.Int8
+	ColumnID     pgtype.Int8
+}
+
+type MoveItemToColumnRow struct {
+	ColumnItemID pgtype.Int8
+	ColumnID     pgtype.Int8
+	ItemID       pgtype.Int8
+	Position     pgtype.Int4
+}
+
+func (q *Queries) MoveItemToColumn(ctx context.Context, arg MoveItemToColumnParams) (MoveItemToColumnRow, error) {
+	row := q.db.QueryRow(ctx, moveItemToColumn, arg.ColumnItemID, arg.ColumnID)
+	var i MoveItemToColumnRow
+	err := row.Scan(
+		&i.ColumnItemID,
+		&i.ColumnID,
+		&i.ItemID,
+		&i.Position,
+	)
+	return i, err
+}
+
 const updateBoard = `-- name: UpdateBoard :one
 UPDATE boards
 SET
@@ -800,6 +1038,35 @@ func (q *Queries) UpdateBoard(ctx context.Context, arg UpdateBoardParams) (Updat
 	row := q.db.QueryRow(ctx, updateBoard, arg.BoardID, arg.Name, arg.Description)
 	var i UpdateBoardRow
 	err := row.Scan(&i.BoardID, &i.Name, &i.Description)
+	return i, err
+}
+
+const updateColumn = `-- name: UpdateColumn :one
+UPDATE kbcolumns
+SET
+    name = $2
+WHERE
+    column_id = $1
+RETURNING
+    column_id, name, board_id, user_id, position, created_date
+`
+
+type UpdateColumnParams struct {
+	ColumnID pgtype.Int8
+	Name     string
+}
+
+func (q *Queries) UpdateColumn(ctx context.Context, arg UpdateColumnParams) (Kbcolumn, error) {
+	row := q.db.QueryRow(ctx, updateColumn, arg.ColumnID, arg.Name)
+	var i Kbcolumn
+	err := row.Scan(
+		&i.ColumnID,
+		&i.Name,
+		&i.BoardID,
+		&i.UserID,
+		&i.Position,
+		&i.CreatedDate,
+	)
 	return i, err
 }
 
