@@ -10,47 +10,53 @@ import (
 
 type Board struct {
 	BoardID     pgtype.Int8        `json:"board_id"`
+	Uuid        pgtype.UUID        `json:"uuid"`
 	Name        string             `json:"name"`
 	Description pgtype.Text        `json:"description"`
 	UserID      pgtype.Int8        `json:"user_id"`
 	CreatedDate pgtype.Timestamptz `json:"created_date"`
 }
 
-type ColumnItem struct {
-	ColumnItemID pgtype.Int8        `json:"column_item_id"`
-	ColumnID     pgtype.Int8        `json:"column_id"`
-	ItemID       pgtype.Int8        `json:"item_id"`
-	UserID       pgtype.Int8        `json:"user_id"`
-	CreatedDate  pgtype.Timestamptz `json:"created_date"`
-	Position     pgtype.Int4        `json:"position"`
-}
-
 type Item struct {
 	ItemID      pgtype.Int8        `json:"item_id"`
+	Uuid        pgtype.UUID        `json:"uuid"`
 	Title       string             `json:"title"`
 	StatusID    pgtype.Int8        `json:"status_id"`
 	CreatedDate pgtype.Timestamptz `json:"created_date"`
 }
 
-type Kbcolumn struct {
-	ColumnID    pgtype.Int8        `json:"column_id"`
+type List struct {
+	ListID      pgtype.Int8        `json:"list_id"`
+	Uuid        pgtype.UUID        `json:"uuid"`
 	Name        string             `json:"name"`
 	BoardID     pgtype.Int8        `json:"board_id"`
-	UserID      pgtype.Int8        `json:"user_id"`
+	UserID      int64              `json:"user_id"`
+	CreatedDate pgtype.Timestamptz `json:"created_date"`
+}
+
+type ListItem struct {
+	ListItemID  pgtype.Int8        `json:"list_item_id"`
+	Uuid        pgtype.UUID        `json:"uuid"`
+	ListID      int64              `json:"list_id"`
+	ItemID      int64              `json:"item_id"`
 	Position    int32              `json:"position"`
+	PrevItemID  pgtype.Int8        `json:"prev_item_id"`
+	NextItemID  pgtype.Int8        `json:"next_item_id"`
 	CreatedDate pgtype.Timestamptz `json:"created_date"`
 }
 
 type Review struct {
 	ReviewID    pgtype.Int8        `json:"review_id"`
+	Uuid        pgtype.UUID        `json:"uuid"`
 	Content     string             `json:"content"`
-	UserID      pgtype.Int8        `json:"user_id"`
-	ItemID      pgtype.Int8        `json:"item_id"`
+	UserID      int64              `json:"user_id"`
+	ItemID      int64              `json:"item_id"`
 	CreatedDate pgtype.Timestamptz `json:"created_date"`
 }
 
 type Status struct {
 	StatusID    pgtype.Int8        `json:"status_id"`
+	Uuid        pgtype.UUID        `json:"uuid"`
 	UserID      pgtype.Int8        `json:"user_id"`
 	Label       pgtype.Text        `json:"label"`
 	CreatedDate pgtype.Timestamptz `json:"created_date"`
@@ -58,6 +64,7 @@ type Status struct {
 
 type User struct {
 	UserID         pgtype.Int8        `json:"user_id"`
+	Uuid           pgtype.UUID        `json:"uuid"`
 	Username       string             `json:"username"`
 	HashedPassword string             `json:"hashed_password"`
 	Email          string             `json:"email"`

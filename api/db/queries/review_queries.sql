@@ -2,64 +2,87 @@
 INSERT INTO
     reviews (item_id, user_id, content)
 VALUES
-    ($1, $2, $3)
+    (
+        (
+            SELECT
+                item_id
+            FROM
+                items
+            WHERE
+                items.uuid = @item_uuid
+        ),
+        (
+            SELECT
+                user_id
+            FROM
+                users
+            WHERE
+                users.uuid = @user_uuid
+        ),
+        @content
+    )
 RETURNING
-    review_id,
-    user_id,
-    item_id,
+    uuid,
     content,
     created_date;
 
 -- name: GetReview :one
 SELECT
-    *
+    uuid,
+    content,
+    created_date
 FROM
     reviews
 WHERE
-    review_id = $1
+    uuid = @review_uuid
 LIMIT
     1;
 
 -- name: GetReviewsForUser :many
 SELECT
-    *
+    r.uuid,
+    r.content,
+    r.created_date
 FROM
-    reviews
+    reviews r
+        JOIN users u ON u.user_id = r.user_id
 WHERE
-    user_id = $1
+    u.uuid = @user_uuid
 ORDER BY
-    created_date
+    r.created_date
 LIMIT
-    $2
+    @page_size
     OFFSET
-    $3;
+    @page;
 
 -- name: GetReviewsForItem :many
 SELECT
-    *
+    r.uuid,
+    r.content,
+    r.created_date
 FROM
-    reviews
+    reviews r
+        JOIN items i ON i.item_id = r.item_id
 WHERE
-    item_id = $1
+    i.uuid = @item_uuid
 ORDER BY
-    created_date
+    r.created_date
 LIMIT
-    $2
+    @page_size
     OFFSET
-    $3;
+    @page;
 
 -- name: UpdateReview :one
 UPDATE reviews
 SET
-    content = $2
+    content = @content
 WHERE
-    review_id = $1
+    uuid = @review_uuid
 RETURNING
-    review_id,
-    item_id,
+    uuid,
     content;
 
 -- name: DeleteReview :exec
 DELETE FROM reviews
 WHERE
-    review_id = $1;
+    uuid = @review_uuid;

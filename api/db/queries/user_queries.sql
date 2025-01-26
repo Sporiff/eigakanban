@@ -2,49 +2,52 @@
 INSERT INTO
     users (username, hashed_password, email, full_name, bio)
 VALUES
-    ($1, $2, $3, $4, $5)
+    (@username, @hashed_password, @email, @full_name, @bio)
 RETURNING
-    user_id,
+    uuid,
     username,
     full_name,
     bio,
     created_date;
 
--- name: GetUserById :one
+-- name: GetUserByUuid :one
 SELECT
+    uuid,
     username,
     full_name,
     bio
 FROM
     users
 WHERE
-    user_id = $1
+    uuid = @user_uuid
 LIMIT
     1;
 
 -- name: GetAllUsers :many
 SELECT
+    uuid,
     username,
     full_name,
     bio
 FROM
     users
 ORDER BY
-    user_id
+    created_date
 LIMIT
-    $1
+    @page_size
     OFFSET
-    $2;
+    @page;
 
 -- name: UpdateUserDetails :one
 UPDATE users
 SET
-    username = $2,
-    full_name = $3,
-    bio = $4
+    username = @new_username,
+    full_name = @new_name,
+    bio = @new_bio
 WHERE
-    user_id = $1
+    uuid = @user_uuid
 RETURNING
+    uuid,
     username,
     full_name,
     bio;
@@ -52,4 +55,4 @@ RETURNING
 -- name: DeleteUser :exec
 DELETE FROM users
 WHERE
-    user_id = $1;
+    uuid = @user_uuid;

@@ -2,36 +2,61 @@
 INSERT INTO
     statuses (user_id, label)
 VALUES
-    ($1, $2)
+    (
+        (
+            SELECT
+                user_id
+            FROM
+                users
+            WHERE
+                users.uuid = @user_uuid
+        ),
+        @status_label
+    )
 RETURNING
-    status_id,
-    user_id,
+    uuid,
     label,
     created_date;
 
 -- name: GetStatus :one
-SELECT * FROM statuses
+SELECT
+    uuid,
+    label,
+    created_date
+FROM
+    statuses
 WHERE
-    status_id = $1
+    uuid = @status_uuid
 LIMIT
     1;
 
 -- name: GetStatusesForUser :many
-SELECT * FROM statuses
+SELECT
+    s.uuid,
+    s.label,
+    s.created_date
+FROM
+    statuses s
+        JOIN users u ON u.user_id = s.user_id
 WHERE
-    user_id = $1
+    u.uuid = @user_uuid
 ORDER BY
-    created_date
+    s.created_date
 LIMIT
-    $2
+    @page_size
     OFFSET
-    $3;
+    @page;
 
 -- name: GetAllStatuses :many
-SELECT * FROM statuses
+SELECT
+    uuid,
+    label,
+    created_date
+FROM
+    statuses
 ORDER BY
     created_date
 LIMIT
-    $1
+    @page_size
     OFFSET
-    $2;
+    @page;

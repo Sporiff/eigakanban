@@ -15,114 +15,127 @@ const addReview = `-- name: AddReview :one
 INSERT INTO
     reviews (item_id, user_id, content)
 VALUES
-    ($1, $2, $3)
+    (
+        (
+            SELECT
+                item_id
+            FROM
+                items
+            WHERE
+                items.uuid = $1
+        ),
+        (
+            SELECT
+                user_id
+            FROM
+                users
+            WHERE
+                users.uuid = $2
+        ),
+        $3
+    )
 RETURNING
-    review_id,
-    user_id,
-    item_id,
+    uuid,
     content,
     created_date
 `
 
 type AddReviewParams struct {
-	ItemID  pgtype.Int8 `json:"item_id"`
-	UserID  pgtype.Int8 `json:"user_id"`
-	Content string      `json:"content"`
+	ItemUuid pgtype.UUID `json:"item_uuid"`
+	UserUuid pgtype.UUID `json:"user_uuid"`
+	Content  string      `json:"content"`
 }
 
 type AddReviewRow struct {
-	ReviewID    pgtype.Int8        `json:"review_id"`
-	UserID      pgtype.Int8        `json:"user_id"`
-	ItemID      pgtype.Int8        `json:"item_id"`
+	Uuid        pgtype.UUID        `json:"uuid"`
 	Content     string             `json:"content"`
 	CreatedDate pgtype.Timestamptz `json:"created_date"`
 }
 
 func (q *Queries) AddReview(ctx context.Context, arg AddReviewParams) (AddReviewRow, error) {
-	row := q.db.QueryRow(ctx, addReview, arg.ItemID, arg.UserID, arg.Content)
+	row := q.db.QueryRow(ctx, addReview, arg.ItemUuid, arg.UserUuid, arg.Content)
 	var i AddReviewRow
-	err := row.Scan(
-		&i.ReviewID,
-		&i.UserID,
-		&i.ItemID,
-		&i.Content,
-		&i.CreatedDate,
-	)
+	err := row.Scan(&i.Uuid, &i.Content, &i.CreatedDate)
 	return i, err
 }
 
 const deleteReview = `-- name: DeleteReview :exec
 DELETE FROM reviews
 WHERE
-    review_id = $1
+    uuid = $1
 `
 
-func (q *Queries) DeleteReview(ctx context.Context, reviewID pgtype.Int8) error {
-	_, err := q.db.Exec(ctx, deleteReview, reviewID)
+func (q *Queries) DeleteReview(ctx context.Context, reviewUuid pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteReview, reviewUuid)
 	return err
 }
 
 const getReview = `-- name: GetReview :one
 SELECT
-    review_id, content, user_id, item_id, created_date
+    uuid,
+    content,
+    created_date
 FROM
     reviews
 WHERE
-    review_id = $1
+    uuid = $1
 LIMIT
     1
 `
 
-func (q *Queries) GetReview(ctx context.Context, reviewID pgtype.Int8) (Review, error) {
-	row := q.db.QueryRow(ctx, getReview, reviewID)
-	var i Review
-	err := row.Scan(
-		&i.ReviewID,
-		&i.Content,
-		&i.UserID,
-		&i.ItemID,
-		&i.CreatedDate,
-	)
+type GetReviewRow struct {
+	Uuid        pgtype.UUID        `json:"uuid"`
+	Content     string             `json:"content"`
+	CreatedDate pgtype.Timestamptz `json:"created_date"`
+}
+
+func (q *Queries) GetReview(ctx context.Context, reviewUuid pgtype.UUID) (GetReviewRow, error) {
+	row := q.db.QueryRow(ctx, getReview, reviewUuid)
+	var i GetReviewRow
+	err := row.Scan(&i.Uuid, &i.Content, &i.CreatedDate)
 	return i, err
 }
 
 const getReviewsForItem = `-- name: GetReviewsForItem :many
 SELECT
-    review_id, content, user_id, item_id, created_date
+    r.uuid,
+    r.content,
+    r.created_date
 FROM
-    reviews
+    reviews r
+        JOIN items i ON i.item_id = r.item_id
 WHERE
-    item_id = $1
+    i.uuid = $1
 ORDER BY
-    created_date
+    r.created_date
 LIMIT
-    $2
-    OFFSET
     $3
+    OFFSET
+    $2
 `
 
 type GetReviewsForItemParams struct {
-	ItemID pgtype.Int8 `json:"item_id"`
-	Limit  int32       `json:"limit"`
-	Offset int32       `json:"offset"`
+	ItemUuid pgtype.UUID `json:"item_uuid"`
+	Page     int32       `json:"page"`
+	PageSize int32       `json:"page_size"`
 }
 
-func (q *Queries) GetReviewsForItem(ctx context.Context, arg GetReviewsForItemParams) ([]Review, error) {
-	rows, err := q.db.Query(ctx, getReviewsForItem, arg.ItemID, arg.Limit, arg.Offset)
+type GetReviewsForItemRow struct {
+	Uuid        pgtype.UUID        `json:"uuid"`
+	Content     string             `json:"content"`
+	CreatedDate pgtype.Timestamptz `json:"created_date"`
+}
+
+func (q *Queries) GetReviewsForItem(ctx context.Context, arg GetReviewsForItemParams) ([]GetReviewsForItemRow, error) {
+	rows, err := q.db.Query(ctx, getReviewsForItem, arg.ItemUuid, arg.Page, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Review
+	var items []GetReviewsForItemRow
 	for rows.Next() {
-		var i Review
-		if err := rows.Scan(
-			&i.ReviewID,
-			&i.Content,
-			&i.UserID,
-			&i.ItemID,
-			&i.CreatedDate,
-		); err != nil {
+		var i GetReviewsForItemRow
+		if err := rows.Scan(&i.Uuid, &i.Content, &i.CreatedDate); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -135,41 +148,44 @@ func (q *Queries) GetReviewsForItem(ctx context.Context, arg GetReviewsForItemPa
 
 const getReviewsForUser = `-- name: GetReviewsForUser :many
 SELECT
-    review_id, content, user_id, item_id, created_date
+    r.uuid,
+    r.content,
+    r.created_date
 FROM
-    reviews
+    reviews r
+        JOIN users u ON u.user_id = r.user_id
 WHERE
-    user_id = $1
+    u.uuid = $1
 ORDER BY
-    created_date
+    r.created_date
 LIMIT
-    $2
-    OFFSET
     $3
+    OFFSET
+    $2
 `
 
 type GetReviewsForUserParams struct {
-	UserID pgtype.Int8 `json:"user_id"`
-	Limit  int32       `json:"limit"`
-	Offset int32       `json:"offset"`
+	UserUuid pgtype.UUID `json:"user_uuid"`
+	Page     int32       `json:"page"`
+	PageSize int32       `json:"page_size"`
 }
 
-func (q *Queries) GetReviewsForUser(ctx context.Context, arg GetReviewsForUserParams) ([]Review, error) {
-	rows, err := q.db.Query(ctx, getReviewsForUser, arg.UserID, arg.Limit, arg.Offset)
+type GetReviewsForUserRow struct {
+	Uuid        pgtype.UUID        `json:"uuid"`
+	Content     string             `json:"content"`
+	CreatedDate pgtype.Timestamptz `json:"created_date"`
+}
+
+func (q *Queries) GetReviewsForUser(ctx context.Context, arg GetReviewsForUserParams) ([]GetReviewsForUserRow, error) {
+	rows, err := q.db.Query(ctx, getReviewsForUser, arg.UserUuid, arg.Page, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Review
+	var items []GetReviewsForUserRow
 	for rows.Next() {
-		var i Review
-		if err := rows.Scan(
-			&i.ReviewID,
-			&i.Content,
-			&i.UserID,
-			&i.ItemID,
-			&i.CreatedDate,
-		); err != nil {
+		var i GetReviewsForUserRow
+		if err := rows.Scan(&i.Uuid, &i.Content, &i.CreatedDate); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -183,29 +199,27 @@ func (q *Queries) GetReviewsForUser(ctx context.Context, arg GetReviewsForUserPa
 const updateReview = `-- name: UpdateReview :one
 UPDATE reviews
 SET
-    content = $2
+    content = $1
 WHERE
-    review_id = $1
+    uuid = $2
 RETURNING
-    review_id,
-    item_id,
+    uuid,
     content
 `
 
 type UpdateReviewParams struct {
-	ReviewID pgtype.Int8 `json:"review_id"`
-	Content  string      `json:"content"`
+	Content    string      `json:"content"`
+	ReviewUuid pgtype.UUID `json:"review_uuid"`
 }
 
 type UpdateReviewRow struct {
-	ReviewID pgtype.Int8 `json:"review_id"`
-	ItemID   pgtype.Int8 `json:"item_id"`
-	Content  string      `json:"content"`
+	Uuid    pgtype.UUID `json:"uuid"`
+	Content string      `json:"content"`
 }
 
 func (q *Queries) UpdateReview(ctx context.Context, arg UpdateReviewParams) (UpdateReviewRow, error) {
-	row := q.db.QueryRow(ctx, updateReview, arg.ReviewID, arg.Content)
+	row := q.db.QueryRow(ctx, updateReview, arg.Content, arg.ReviewUuid)
 	var i UpdateReviewRow
-	err := row.Scan(&i.ReviewID, &i.ItemID, &i.Content)
+	err := row.Scan(&i.Uuid, &i.Content)
 	return i, err
 }

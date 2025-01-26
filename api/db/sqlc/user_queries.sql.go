@@ -17,7 +17,7 @@ INSERT INTO
 VALUES
     ($1, $2, $3, $4, $5)
 RETURNING
-    user_id,
+    uuid,
     username,
     full_name,
     bio,
@@ -33,7 +33,7 @@ type AddUserParams struct {
 }
 
 type AddUserRow struct {
-	UserID      pgtype.Int8        `json:"user_id"`
+	Uuid        pgtype.UUID        `json:"uuid"`
 	Username    string             `json:"username"`
 	FullName    pgtype.Text        `json:"full_name"`
 	Bio         pgtype.Text        `json:"bio"`
@@ -50,7 +50,7 @@ func (q *Queries) AddUser(ctx context.Context, arg AddUserParams) (AddUserRow, e
 	)
 	var i AddUserRow
 	err := row.Scan(
-		&i.UserID,
+		&i.Uuid,
 		&i.Username,
 		&i.FullName,
 		&i.Bio,
@@ -62,42 +62,44 @@ func (q *Queries) AddUser(ctx context.Context, arg AddUserParams) (AddUserRow, e
 const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM users
 WHERE
-    user_id = $1
+    uuid = $1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, userID pgtype.Int8) error {
-	_, err := q.db.Exec(ctx, deleteUser, userID)
+func (q *Queries) DeleteUser(ctx context.Context, userUuid pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUser, userUuid)
 	return err
 }
 
 const getAllUsers = `-- name: GetAllUsers :many
 SELECT
+    uuid,
     username,
     full_name,
     bio
 FROM
     users
 ORDER BY
-    user_id
+    created_date
 LIMIT
-    $1
-    OFFSET
     $2
+    OFFSET
+    $1
 `
 
 type GetAllUsersParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Page     int32 `json:"page"`
+	PageSize int32 `json:"page_size"`
 }
 
 type GetAllUsersRow struct {
+	Uuid     pgtype.UUID `json:"uuid"`
 	Username string      `json:"username"`
 	FullName pgtype.Text `json:"full_name"`
 	Bio      pgtype.Text `json:"bio"`
 }
 
 func (q *Queries) GetAllUsers(ctx context.Context, arg GetAllUsersParams) ([]GetAllUsersRow, error) {
-	rows, err := q.db.Query(ctx, getAllUsers, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getAllUsers, arg.Page, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +107,12 @@ func (q *Queries) GetAllUsers(ctx context.Context, arg GetAllUsersParams) ([]Get
 	var items []GetAllUsersRow
 	for rows.Next() {
 		var i GetAllUsersRow
-		if err := rows.Scan(&i.Username, &i.FullName, &i.Bio); err != nil {
+		if err := rows.Scan(
+			&i.Uuid,
+			&i.Username,
+			&i.FullName,
+			&i.Bio,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -116,54 +123,63 @@ func (q *Queries) GetAllUsers(ctx context.Context, arg GetAllUsersParams) ([]Get
 	return items, nil
 }
 
-const getUserById = `-- name: GetUserById :one
+const getUserByUuid = `-- name: GetUserByUuid :one
 SELECT
+    uuid,
     username,
     full_name,
     bio
 FROM
     users
 WHERE
-    user_id = $1
+    uuid = $1
 LIMIT
     1
 `
 
-type GetUserByIdRow struct {
+type GetUserByUuidRow struct {
+	Uuid     pgtype.UUID `json:"uuid"`
 	Username string      `json:"username"`
 	FullName pgtype.Text `json:"full_name"`
 	Bio      pgtype.Text `json:"bio"`
 }
 
-func (q *Queries) GetUserById(ctx context.Context, userID pgtype.Int8) (GetUserByIdRow, error) {
-	row := q.db.QueryRow(ctx, getUserById, userID)
-	var i GetUserByIdRow
-	err := row.Scan(&i.Username, &i.FullName, &i.Bio)
+func (q *Queries) GetUserByUuid(ctx context.Context, userUuid pgtype.UUID) (GetUserByUuidRow, error) {
+	row := q.db.QueryRow(ctx, getUserByUuid, userUuid)
+	var i GetUserByUuidRow
+	err := row.Scan(
+		&i.Uuid,
+		&i.Username,
+		&i.FullName,
+		&i.Bio,
+	)
 	return i, err
 }
 
 const updateUserDetails = `-- name: UpdateUserDetails :one
 UPDATE users
 SET
-    username = $2,
-    full_name = $3,
-    bio = $4
+    username = $1,
+    full_name = $2,
+    bio = $3
 WHERE
-    user_id = $1
+    uuid = $4
 RETURNING
+    uuid,
     username,
     full_name,
     bio
 `
 
 type UpdateUserDetailsParams struct {
-	UserID   pgtype.Int8 `json:"user_id"`
-	Username string      `json:"username"`
-	FullName pgtype.Text `json:"full_name"`
-	Bio      pgtype.Text `json:"bio"`
+	NewUsername string      `json:"new_username"`
+	NewName     pgtype.Text `json:"new_name"`
+	NewBio      pgtype.Text `json:"new_bio"`
+	UserUuid    pgtype.UUID `json:"user_uuid"`
 }
 
 type UpdateUserDetailsRow struct {
+	Uuid     pgtype.UUID `json:"uuid"`
 	Username string      `json:"username"`
 	FullName pgtype.Text `json:"full_name"`
 	Bio      pgtype.Text `json:"bio"`
@@ -171,12 +187,17 @@ type UpdateUserDetailsRow struct {
 
 func (q *Queries) UpdateUserDetails(ctx context.Context, arg UpdateUserDetailsParams) (UpdateUserDetailsRow, error) {
 	row := q.db.QueryRow(ctx, updateUserDetails,
-		arg.UserID,
-		arg.Username,
-		arg.FullName,
-		arg.Bio,
+		arg.NewUsername,
+		arg.NewName,
+		arg.NewBio,
+		arg.UserUuid,
 	)
 	var i UpdateUserDetailsRow
-	err := row.Scan(&i.Username, &i.FullName, &i.Bio)
+	err := row.Scan(
+		&i.Uuid,
+		&i.Username,
+		&i.FullName,
+		&i.Bio,
+	)
 	return i, err
 }

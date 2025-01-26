@@ -2,38 +2,50 @@
 INSERT INTO
     boards (name, description, user_id)
 VALUES
-    ($1, $2, $3)
+    (
+        @board_name,
+        @board_description,
+        (
+            SELECT
+                user_id
+            FROM
+                users
+            WHERE
+                users.uuid = @user_uuid
+        )
+    )
 RETURNING
-    board_id,
+    uuid,
     name,
     description,
     created_date;
 
--- name: GetBoardById :one
+-- name: GetBoardByUuid :one
 SELECT
     name,
     description
 FROM
     boards
 WHERE
-    board_id = $1
+    uuid = @board_uuid
 LIMIT
     1;
 
 -- name: GetBoardsForUser :many
 SELECT
-    name,
-    description
+    b.name,
+    b.description
 FROM
-    boards
+    boards b
+        JOIN users u ON b.user_id = u.user_id
 WHERE
-    user_id = $1
+    u.uuid = @user_uuid
 ORDER BY
-    board_id
+    b.created_date
 LIMIT
-    $2
+    @page_size
     OFFSET
-    $3;
+    @page;
 
 -- name: GetAllBoards :many
 SELECT
@@ -42,25 +54,25 @@ SELECT
 FROM
     boards
 ORDER BY
-    board_id
+    created_date
 LIMIT
-    $1
+    @page_size
     OFFSET
-    $2;
+    @page;
 
 -- name: UpdateBoard :one
 UPDATE boards
 SET
-    name = $2,
-    description = $3
+    name = @board_name,
+    description = @board_description
 WHERE
-    board_id = $1
+    uuid = @board_uuid
 RETURNING
-    board_id,
+    uuid,
     name,
     description;
 
 -- name: DeleteBoard :exec
 DELETE FROM boards
 WHERE
-    board_id = $1;
+    uuid = @board_uuid;

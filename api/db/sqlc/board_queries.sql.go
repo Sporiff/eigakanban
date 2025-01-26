@@ -15,32 +15,43 @@ const addBoard = `-- name: AddBoard :one
 INSERT INTO
     boards (name, description, user_id)
 VALUES
-    ($1, $2, $3)
+    (
+        $1,
+        $2,
+        (
+            SELECT
+                user_id
+            FROM
+                users
+            WHERE
+                users.uuid = $3
+        )
+    )
 RETURNING
-    board_id,
+    uuid,
     name,
     description,
     created_date
 `
 
 type AddBoardParams struct {
-	Name        string      `json:"name"`
-	Description pgtype.Text `json:"description"`
-	UserID      pgtype.Int8 `json:"user_id"`
+	BoardName        string      `json:"board_name"`
+	BoardDescription pgtype.Text `json:"board_description"`
+	UserUuid         pgtype.UUID `json:"user_uuid"`
 }
 
 type AddBoardRow struct {
-	BoardID     pgtype.Int8        `json:"board_id"`
+	Uuid        pgtype.UUID        `json:"uuid"`
 	Name        string             `json:"name"`
 	Description pgtype.Text        `json:"description"`
 	CreatedDate pgtype.Timestamptz `json:"created_date"`
 }
 
 func (q *Queries) AddBoard(ctx context.Context, arg AddBoardParams) (AddBoardRow, error) {
-	row := q.db.QueryRow(ctx, addBoard, arg.Name, arg.Description, arg.UserID)
+	row := q.db.QueryRow(ctx, addBoard, arg.BoardName, arg.BoardDescription, arg.UserUuid)
 	var i AddBoardRow
 	err := row.Scan(
-		&i.BoardID,
+		&i.Uuid,
 		&i.Name,
 		&i.Description,
 		&i.CreatedDate,
@@ -51,11 +62,11 @@ func (q *Queries) AddBoard(ctx context.Context, arg AddBoardParams) (AddBoardRow
 const deleteBoard = `-- name: DeleteBoard :exec
 DELETE FROM boards
 WHERE
-    board_id = $1
+    uuid = $1
 `
 
-func (q *Queries) DeleteBoard(ctx context.Context, boardID pgtype.Int8) error {
-	_, err := q.db.Exec(ctx, deleteBoard, boardID)
+func (q *Queries) DeleteBoard(ctx context.Context, boardUuid pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteBoard, boardUuid)
 	return err
 }
 
@@ -66,16 +77,16 @@ SELECT
 FROM
     boards
 ORDER BY
-    board_id
+    created_date
 LIMIT
-    $1
-    OFFSET
     $2
+    OFFSET
+    $1
 `
 
 type GetAllBoardsParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Page     int32 `json:"page"`
+	PageSize int32 `json:"page_size"`
 }
 
 type GetAllBoardsRow struct {
@@ -84,7 +95,7 @@ type GetAllBoardsRow struct {
 }
 
 func (q *Queries) GetAllBoards(ctx context.Context, arg GetAllBoardsParams) ([]GetAllBoardsRow, error) {
-	rows, err := q.db.Query(ctx, getAllBoards, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getAllBoards, arg.Page, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -103,50 +114,51 @@ func (q *Queries) GetAllBoards(ctx context.Context, arg GetAllBoardsParams) ([]G
 	return items, nil
 }
 
-const getBoardById = `-- name: GetBoardById :one
+const getBoardByUuid = `-- name: GetBoardByUuid :one
 SELECT
     name,
     description
 FROM
     boards
 WHERE
-    board_id = $1
+    uuid = $1
 LIMIT
     1
 `
 
-type GetBoardByIdRow struct {
+type GetBoardByUuidRow struct {
 	Name        string      `json:"name"`
 	Description pgtype.Text `json:"description"`
 }
 
-func (q *Queries) GetBoardById(ctx context.Context, boardID pgtype.Int8) (GetBoardByIdRow, error) {
-	row := q.db.QueryRow(ctx, getBoardById, boardID)
-	var i GetBoardByIdRow
+func (q *Queries) GetBoardByUuid(ctx context.Context, boardUuid pgtype.UUID) (GetBoardByUuidRow, error) {
+	row := q.db.QueryRow(ctx, getBoardByUuid, boardUuid)
+	var i GetBoardByUuidRow
 	err := row.Scan(&i.Name, &i.Description)
 	return i, err
 }
 
 const getBoardsForUser = `-- name: GetBoardsForUser :many
 SELECT
-    name,
-    description
+    b.name,
+    b.description
 FROM
-    boards
+    boards b
+        JOIN users u ON b.user_id = u.user_id
 WHERE
-    user_id = $1
+    u.uuid = $1
 ORDER BY
-    board_id
+    b.created_date
 LIMIT
-    $2
-    OFFSET
     $3
+    OFFSET
+    $2
 `
 
 type GetBoardsForUserParams struct {
-	UserID pgtype.Int8 `json:"user_id"`
-	Limit  int32       `json:"limit"`
-	Offset int32       `json:"offset"`
+	UserUuid pgtype.UUID `json:"user_uuid"`
+	Page     int32       `json:"page"`
+	PageSize int32       `json:"page_size"`
 }
 
 type GetBoardsForUserRow struct {
@@ -155,7 +167,7 @@ type GetBoardsForUserRow struct {
 }
 
 func (q *Queries) GetBoardsForUser(ctx context.Context, arg GetBoardsForUserParams) ([]GetBoardsForUserRow, error) {
-	rows, err := q.db.Query(ctx, getBoardsForUser, arg.UserID, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getBoardsForUser, arg.UserUuid, arg.Page, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -177,31 +189,31 @@ func (q *Queries) GetBoardsForUser(ctx context.Context, arg GetBoardsForUserPara
 const updateBoard = `-- name: UpdateBoard :one
 UPDATE boards
 SET
-    name = $2,
-    description = $3
+    name = $1,
+    description = $2
 WHERE
-    board_id = $1
+    uuid = $3
 RETURNING
-    board_id,
+    uuid,
     name,
     description
 `
 
 type UpdateBoardParams struct {
-	BoardID     pgtype.Int8 `json:"board_id"`
-	Name        string      `json:"name"`
-	Description pgtype.Text `json:"description"`
+	BoardName        string      `json:"board_name"`
+	BoardDescription pgtype.Text `json:"board_description"`
+	BoardUuid        pgtype.UUID `json:"board_uuid"`
 }
 
 type UpdateBoardRow struct {
-	BoardID     pgtype.Int8 `json:"board_id"`
+	Uuid        pgtype.UUID `json:"uuid"`
 	Name        string      `json:"name"`
 	Description pgtype.Text `json:"description"`
 }
 
 func (q *Queries) UpdateBoard(ctx context.Context, arg UpdateBoardParams) (UpdateBoardRow, error) {
-	row := q.db.QueryRow(ctx, updateBoard, arg.BoardID, arg.Name, arg.Description)
+	row := q.db.QueryRow(ctx, updateBoard, arg.BoardName, arg.BoardDescription, arg.BoardUuid)
 	var i UpdateBoardRow
-	err := row.Scan(&i.BoardID, &i.Name, &i.Description)
+	err := row.Scan(&i.Uuid, &i.Name, &i.Description)
 	return i, err
 }

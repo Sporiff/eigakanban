@@ -15,61 +15,77 @@ const addStatus = `-- name: AddStatus :one
 INSERT INTO
     statuses (user_id, label)
 VALUES
-    ($1, $2)
+    (
+        (
+            SELECT
+                user_id
+            FROM
+                users
+            WHERE
+                users.uuid = $1
+        ),
+        $2
+    )
 RETURNING
-    status_id,
-    user_id,
+    uuid,
     label,
     created_date
 `
 
 type AddStatusParams struct {
-	UserID pgtype.Int8 `json:"user_id"`
-	Label  pgtype.Text `json:"label"`
+	UserUuid    pgtype.UUID `json:"user_uuid"`
+	StatusLabel pgtype.Text `json:"status_label"`
 }
 
-func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) (Status, error) {
-	row := q.db.QueryRow(ctx, addStatus, arg.UserID, arg.Label)
-	var i Status
-	err := row.Scan(
-		&i.StatusID,
-		&i.UserID,
-		&i.Label,
-		&i.CreatedDate,
-	)
+type AddStatusRow struct {
+	Uuid        pgtype.UUID        `json:"uuid"`
+	Label       pgtype.Text        `json:"label"`
+	CreatedDate pgtype.Timestamptz `json:"created_date"`
+}
+
+func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) (AddStatusRow, error) {
+	row := q.db.QueryRow(ctx, addStatus, arg.UserUuid, arg.StatusLabel)
+	var i AddStatusRow
+	err := row.Scan(&i.Uuid, &i.Label, &i.CreatedDate)
 	return i, err
 }
 
 const getAllStatuses = `-- name: GetAllStatuses :many
-SELECT status_id, user_id, label, created_date FROM statuses
+SELECT
+    uuid,
+    label,
+    created_date
+FROM
+    statuses
 ORDER BY
     created_date
 LIMIT
-    $1
-    OFFSET
     $2
+    OFFSET
+    $1
 `
 
 type GetAllStatusesParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Page     int32 `json:"page"`
+	PageSize int32 `json:"page_size"`
 }
 
-func (q *Queries) GetAllStatuses(ctx context.Context, arg GetAllStatusesParams) ([]Status, error) {
-	rows, err := q.db.Query(ctx, getAllStatuses, arg.Limit, arg.Offset)
+type GetAllStatusesRow struct {
+	Uuid        pgtype.UUID        `json:"uuid"`
+	Label       pgtype.Text        `json:"label"`
+	CreatedDate pgtype.Timestamptz `json:"created_date"`
+}
+
+func (q *Queries) GetAllStatuses(ctx context.Context, arg GetAllStatusesParams) ([]GetAllStatusesRow, error) {
+	rows, err := q.db.Query(ctx, getAllStatuses, arg.Page, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Status
+	var items []GetAllStatusesRow
 	for rows.Next() {
-		var i Status
-		if err := rows.Scan(
-			&i.StatusID,
-			&i.UserID,
-			&i.Label,
-			&i.CreatedDate,
-		); err != nil {
+		var i GetAllStatusesRow
+		if err := rows.Scan(&i.Uuid, &i.Label, &i.CreatedDate); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -81,58 +97,71 @@ func (q *Queries) GetAllStatuses(ctx context.Context, arg GetAllStatusesParams) 
 }
 
 const getStatus = `-- name: GetStatus :one
-SELECT status_id, user_id, label, created_date FROM statuses
+SELECT
+    uuid,
+    label,
+    created_date
+FROM
+    statuses
 WHERE
-    status_id = $1
+    uuid = $1
 LIMIT
     1
 `
 
-func (q *Queries) GetStatus(ctx context.Context, statusID pgtype.Int8) (Status, error) {
-	row := q.db.QueryRow(ctx, getStatus, statusID)
-	var i Status
-	err := row.Scan(
-		&i.StatusID,
-		&i.UserID,
-		&i.Label,
-		&i.CreatedDate,
-	)
+type GetStatusRow struct {
+	Uuid        pgtype.UUID        `json:"uuid"`
+	Label       pgtype.Text        `json:"label"`
+	CreatedDate pgtype.Timestamptz `json:"created_date"`
+}
+
+func (q *Queries) GetStatus(ctx context.Context, statusUuid pgtype.UUID) (GetStatusRow, error) {
+	row := q.db.QueryRow(ctx, getStatus, statusUuid)
+	var i GetStatusRow
+	err := row.Scan(&i.Uuid, &i.Label, &i.CreatedDate)
 	return i, err
 }
 
 const getStatusesForUser = `-- name: GetStatusesForUser :many
-SELECT status_id, user_id, label, created_date FROM statuses
+SELECT
+    s.uuid,
+    s.label,
+    s.created_date
+FROM
+    statuses s
+        JOIN users u ON u.user_id = s.user_id
 WHERE
-    user_id = $1
+    u.uuid = $1
 ORDER BY
-    created_date
+    s.created_date
 LIMIT
-    $2
-    OFFSET
     $3
+    OFFSET
+    $2
 `
 
 type GetStatusesForUserParams struct {
-	UserID pgtype.Int8 `json:"user_id"`
-	Limit  int32       `json:"limit"`
-	Offset int32       `json:"offset"`
+	UserUuid pgtype.UUID `json:"user_uuid"`
+	Page     int32       `json:"page"`
+	PageSize int32       `json:"page_size"`
 }
 
-func (q *Queries) GetStatusesForUser(ctx context.Context, arg GetStatusesForUserParams) ([]Status, error) {
-	rows, err := q.db.Query(ctx, getStatusesForUser, arg.UserID, arg.Limit, arg.Offset)
+type GetStatusesForUserRow struct {
+	Uuid        pgtype.UUID        `json:"uuid"`
+	Label       pgtype.Text        `json:"label"`
+	CreatedDate pgtype.Timestamptz `json:"created_date"`
+}
+
+func (q *Queries) GetStatusesForUser(ctx context.Context, arg GetStatusesForUserParams) ([]GetStatusesForUserRow, error) {
+	rows, err := q.db.Query(ctx, getStatusesForUser, arg.UserUuid, arg.Page, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Status
+	var items []GetStatusesForUserRow
 	for rows.Next() {
-		var i Status
-		if err := rows.Scan(
-			&i.StatusID,
-			&i.UserID,
-			&i.Label,
-			&i.CreatedDate,
-		); err != nil {
+		var i GetStatusesForUserRow
+		if err := rows.Scan(&i.Uuid, &i.Label, &i.CreatedDate); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
