@@ -14,8 +14,8 @@ type ErrorResponse struct {
 	Error string `json:"error" example:"internal server error"`
 }
 
-// BadUuidResponse represents a UUID validation error
-// @Description invalid UUID format
-type BadUuidResponse struct {
-	Error string `json:"error" example:"invalid UUID length: 37"`
+// MessageResponse represents a basic success message
+// @Description a generic success message
+type MessageResponse struct {
+	Message string `json:"message" example:"success"`
 }

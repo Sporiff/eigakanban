@@ -11,6 +11,14 @@ CREATE TABLE users (
                        created_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE refresh_tokens (
+                        token_id BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
+                        user_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+                        token TEXT NOT NULL UNIQUE,
+                        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE boards (
                         board_id BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
                         uuid UUID DEFAULT gen_random_uuid () UNIQUE,
@@ -138,10 +146,20 @@ CREATE INDEX idx_statuses_created_date ON statuses (created_date);
 
 CREATE INDEX idx_statuses_user_id_created_date ON statuses (user_id, created_date);
 
+-- Refresh token indexes
+
+CREATE INDEX idx_refresh_token_user_id ON refresh_tokens (user_id);
+
+CREATE INDEX idx_refresh_token_token ON refresh_tokens (token);
+
 -- +goose StatementEnd
 -- +goose Down
 -- +goose StatementBegin
 -- Drop all indexes
+DROP INDEX idx_refresh_token_user_id;
+
+DROP INDEX idx_refresh_token_token;
+
 DROP INDEX idx_users_uuid;
 
 DROP INDEX idx_users_created_date;
@@ -157,8 +175,6 @@ DROP INDEX idx_boards_user_id;
 DROP INDEX idx_boards_created_date;
 
 DROP INDEX idx_boards_user_id_created_date;
-
-DROP INDEX idx_users_uuid;
 
 DROP INDEX idx_reviews_uuid;
 
@@ -191,6 +207,8 @@ DROP INDEX idx_list_items_prev_item_id;
 DROP INDEX idx_list_items_next_item_id;
 
 -- Drop all tables
+DROP TABLE refresh_tokens;
+
 DROP TABLE reviews;
 
 DROP TABLE list_items;

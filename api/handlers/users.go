@@ -4,7 +4,6 @@ import (
 	"codeberg.org/sporiff/eigakanban/helpers"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgtype"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strconv"
 
@@ -35,65 +34,11 @@ type UserResponse struct {
 	Bio      string `json:"bio" example:"This is a bio"`
 }
 
-// AddUser adds a new user to the system
-//
-//	@Summary		Add new user
-//	@Description	Add new user
-//	@Tags			users
-//	@Accept			json
-//	@Produce		json
-//	@Param			body	body		handlers.AddUser.AddUserRequest	true	"User details"
-//	@Success		200		{object}	UserResponse
-//	@Failure		400		{object}	handlers.AddUser.MissingFieldResponse
-//	@Failure		500		{object}	types.ErrorResponse
-//	@Router			/users [post]
-func (h *UserHandler) AddUser(c *gin.Context) {
-	// AddUserRequest represents the request body for creating a user
-	// @Description A request body for adding a new user
-	type AddUserRequest struct {
-		Username string `json:"username" example:"test" binding:"required"`
-		Email    string `json:"email" example:"test@test.com" binding:"required,email"`
-		Password string `json:"password" example:"password" binding:"required"`
-	}
-
-	// MissingFieldResponse represents an error response for a missing required field
-	// @Description an example of a missing field response
-	type MissingFieldResponse struct {
-		Error struct {
-			Username string `json:"username" example:"This field is required"`
-		} `json:"error"`
-	}
-
-	var req AddUserRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.HandleValidationError(c, err)
-		return
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	user, err := h.q.AddUser(c.Request.Context(), queries.AddUserParams{
-		Username:       req.Username,
-		HashedPassword: string(hashedPassword[:]),
-		Email:          req.Email,
-	})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"user": user})
-}
-
 // GetAllUsers returns a paginated array of users
 //
 //		@Summary		Get all users
 //		@Description	Get all users in a paginated list
+//	 	@Security		BasicAuth
 //		@Tags			users
 //		@Accept			json
 //		@Produce		json
@@ -112,13 +57,13 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 
 	page, err := strconv.ParseInt(c.DefaultQuery("page", "1"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "page must be an integer"})
 		return
 	}
 
 	pageSize, err := strconv.ParseInt(c.DefaultQuery("page_size", "50"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "page_size must be an integer"})
 		return
 	}
 
@@ -150,12 +95,13 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 //
 //	@Summary		Get user by UUID
 //	@Description	Get a user by UUID
+//	@Security		BasicAuth
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
 //	@Param			uuid	path		string				true	"User UUID"
 //	@Success		200		{object}	UserResponse
-//	@Failure		400		{object}	types.BadUuidResponse
+//	@Failure		400		{object}	types.ErrorResponse
 //	@Failure		500		{object}	types.ErrorResponse
 //	@Router			/users/{uuid} [get]
 func (h *UserHandler) GetUserByUuid(c *gin.Context) {
@@ -177,17 +123,18 @@ func (h *UserHandler) GetUserByUuid(c *gin.Context) {
 
 // UpdateUser updates user details
 //
-//	@Summary		Update user details
-//	@Description	Update user details by UUID
-//	@Tags			users
-//	@Accept			json
-//	@Produce		json
-//	@Param			uuid	path		string				true	"User UUID"
-//	@Param			body	body		handlers.UpdateUser.UpdateUserRequest	true	"User details to update"
-//	@Success		200		{object}	UserResponse
-//	@Failure		400		{object}	types.BadUuidResponse
-//	@Failure		500		{object}	types.ErrorResponse
-//	@Router			/users/{uuid} [patch]
+//		@Summary		Update user details
+//		@Description	Update user details by UUID
+//	 	@Security		BasicAuth
+//		@Tags			users
+//		@Accept			json
+//		@Produce		json
+//		@Param			uuid	path		string				true	"User UUID"
+//		@Param			body	body		handlers.UpdateUser.UpdateUserRequest	true	"User details to update"
+//		@Success		200		{object}	UserResponse
+//		@Failure		400		{object}	types.ErrorResponse
+//		@Failure		500		{object}	types.ErrorResponse
+//		@Router			/users/{uuid} [patch]
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	// UpdateUserRequest represents the request body for updating a user
 	// @Description a request body for updating a user
@@ -207,7 +154,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	var req UpdateUserRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		helpers.HandleValidationError(c, err)
 		return
 	}
 
@@ -254,11 +201,12 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 //
 //	@Summary		Delete user
 //	@Description	Delete a user by UUID
+//	@Security		BasicAuth
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
 //	@Param			uuid	path		string				true	"User UUID"
-//	@Success		200		{object}	handlers.DeleteUser.UserDeletedResponse
+//	@Success		200		{object}	handlers.DeleteUser.UserDeletedResponse "User deleted successfully"
 //	@Failure		500		{object}	types.ErrorResponse
 //	@Router			/users/{uuid} [delete]
 func (h *UserHandler) DeleteUser(c *gin.Context) {

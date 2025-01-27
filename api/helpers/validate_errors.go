@@ -43,3 +43,10 @@ func HandleValidationError(c *gin.Context, err error) {
 		"error": FormatValidationError(err),
 	})
 }
+
+// HandleErrors decorates functions to call HandleValidationError for any errors
+func HandleErrors(c *gin.Context, f func() error) {
+	if err := f(); err != nil {
+		HandleValidationError(c, err)
+	}
+}

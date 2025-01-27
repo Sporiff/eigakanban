@@ -45,6 +45,14 @@ type ListItem struct {
 	CreatedDate pgtype.Timestamptz `json:"created_date"`
 }
 
+type RefreshToken struct {
+	TokenID   pgtype.Int8        `json:"token_id"`
+	UserID    int64              `json:"user_id"`
+	Token     string             `json:"token"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type Review struct {
 	ReviewID    pgtype.Int8        `json:"review_id"`
 	Uuid        pgtype.UUID        `json:"uuid"`

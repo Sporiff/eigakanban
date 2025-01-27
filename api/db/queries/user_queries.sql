@@ -14,6 +14,19 @@ RETURNING
 SELECT COUNT (*)
 FROM users;
 
+-- name: GetUserById :one
+SELECT
+    uuid,
+    username,
+    full_name,
+    bio
+FROM
+    users
+WHERE
+    user_id = @user_id
+LIMIT
+    1;
+
 -- name: GetUserByUuid :one
 SELECT
     uuid,
@@ -26,6 +39,30 @@ WHERE
     uuid = @user_uuid
 LIMIT
     1;
+
+-- name: GetExistingUser :one
+SELECT
+    user_id,
+    uuid,
+    username,
+    email,
+    hashed_password
+FROM
+    users
+WHERE
+    email = @email
+OR
+    username = @username
+LIMIT
+    1;
+
+-- name: CheckForUser :one
+SELECT COUNT(*)
+FROM users
+WHERE
+    email = @email
+   OR
+    username = @username;
 
 -- name: GetAllUsers :many
 SELECT

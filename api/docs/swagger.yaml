@@ -1,30 +1,5 @@
 basePath: /api/v1
 definitions:
-  handlers.AddUser.AddUserRequest:
-    properties:
-      email:
-        example: test@test.com
-        type: string
-      password:
-        example: password
-        type: string
-      username:
-        example: test
-        type: string
-    required:
-    - email
-    - password
-    - username
-    type: object
-  handlers.AddUser.MissingFieldResponse:
-    properties:
-      error:
-        properties:
-          username:
-            example: This field is required
-            type: string
-        type: object
-    type: object
   handlers.DeleteUser.UserDeletedResponse:
     properties:
       success:
@@ -39,6 +14,76 @@ definitions:
         items:
           $ref: '#/definitions/handlers.UserResponse'
         type: array
+    type: object
+  handlers.LoginUser.LoginUserRequest:
+    properties:
+      email:
+        example: test@test.com
+        type: string
+      password:
+        example: password
+        type: string
+      username:
+        example: test
+        type: string
+    required:
+    - password
+    type: object
+  handlers.LoginUser.NoUserFoundResponse:
+    properties:
+      error:
+        example: User not found
+        type: string
+    type: object
+  handlers.LoginUser.TokenResponse:
+    properties:
+      token:
+        example: jwt-token-string
+        type: string
+    type: object
+  handlers.LogoutUser.AlreadyLoggedOutResponse:
+    properties:
+      error:
+        example: Already logged out
+        type: string
+    type: object
+  handlers.LogoutUser.LogoutSuccessResponse:
+    properties:
+      message:
+        example: Logged out successfully
+        type: string
+    type: object
+  handlers.LogoutUser.RefreshTokenMissingResponse:
+    properties:
+      error:
+        example: Refresh token is required
+        type: string
+    type: object
+  handlers.MissingFieldResponse:
+    description: an example of a missing field response
+    properties:
+      error:
+        properties:
+          username:
+            example: This field is required
+            type: string
+        type: object
+    type: object
+  handlers.RegisterUser.RegisterUserRequest:
+    properties:
+      email:
+        example: test@test.com
+        type: string
+      password:
+        example: password
+        type: string
+      username:
+        example: test
+        type: string
+    required:
+    - email
+    - password
+    - username
     type: object
   handlers.UpdateUser.UpdateUserRequest:
     properties:
@@ -66,13 +111,6 @@ definitions:
         type: string
       uuid:
         example: 77b62cff-0020-43d9-a90c-5d35bff89f7a
-        type: string
-    type: object
-  types.BadUuidResponse:
-    description: invalid UUID format
-    properties:
-      error:
-        example: 'invalid UUID length: 37'
         type: string
     type: object
   types.ErrorResponse:
@@ -110,6 +148,93 @@ info:
   title: eigakanban API
   version: "1.0"
 paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Log in to user account using email or username
+      parameters:
+      - description: Login details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginUser.LoginUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful login
+          schema:
+            $ref: '#/definitions/handlers.LoginUser.TokenResponse'
+        "400":
+          description: Missing mandatory fields
+          schema:
+            $ref: '#/definitions/handlers.MissingFieldResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/handlers.LoginUser.NoUserFoundResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Log in
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Log out of the app
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            $ref: '#/definitions/handlers.LogoutUser.LogoutSuccessResponse'
+        "400":
+          description: Missing refresh token
+          schema:
+            $ref: '#/definitions/handlers.LogoutUser.RefreshTokenMissingResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Log out
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account
+      parameters:
+      - description: User details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterUser.RegisterUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User registered successfully
+          schema:
+            $ref: '#/definitions/handlers.UserResponse'
+        "400":
+          description: Missing mandatory fields
+          schema:
+            $ref: '#/definitions/handlers.MissingFieldResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Register a new user account
+      tags:
+      - auth
   /users:
     get:
       consumes:
@@ -135,36 +260,9 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BasicAuth: []
       summary: Get all users
-      tags:
-      - users
-    post:
-      consumes:
-      - application/json
-      description: Add new user
-      parameters:
-      - description: User details
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.AddUser.AddUserRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handlers.UserResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/handlers.AddUser.MissingFieldResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/types.ErrorResponse'
-      summary: Add new user
       tags:
       - users
   /users/{uuid}:
@@ -182,7 +280,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: User deleted successfully
           schema:
             $ref: '#/definitions/handlers.DeleteUser.UserDeletedResponse'
         "500":
@@ -212,11 +310,13 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.BadUuidResponse'
+            $ref: '#/definitions/types.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BasicAuth: []
       summary: Get user by UUID
       tags:
       - users
@@ -246,11 +346,13 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/types.BadUuidResponse'
+            $ref: '#/definitions/types.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BasicAuth: []
       summary: Update user details
       tags:
       - users
