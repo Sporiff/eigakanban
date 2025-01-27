@@ -1,0 +1,260 @@
+basePath: /api/v1
+definitions:
+  handlers.AddUser.AddUserRequest:
+    properties:
+      email:
+        example: test@test.com
+        type: string
+      password:
+        example: password
+        type: string
+      username:
+        example: test
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  handlers.AddUser.MissingFieldResponse:
+    properties:
+      error:
+        properties:
+          username:
+            example: This field is required
+            type: string
+        type: object
+    type: object
+  handlers.DeleteUser.UserDeletedResponse:
+    properties:
+      success:
+        example: 'user deleted: 77b62cff-0020-43d9-a90c-5d35bff89f7a'
+        type: string
+    type: object
+  handlers.GetAllUsers.PaginatedUsersResponse:
+    properties:
+      pagination:
+        $ref: '#/definitions/types.Pagination'
+      users:
+        items:
+          $ref: '#/definitions/handlers.UserResponse'
+        type: array
+    type: object
+  handlers.UpdateUser.UpdateUserRequest:
+    properties:
+      bio:
+        example: This is a bio
+        type: string
+      full_name:
+        example: Tim Test
+        type: string
+      username:
+        example: new_username
+        type: string
+    type: object
+  handlers.UserResponse:
+    description: JSON representation of a user in the system
+    properties:
+      bio:
+        example: This is a bio
+        type: string
+      full_name:
+        example: Tim Test
+        type: string
+      username:
+        example: username
+        type: string
+      uuid:
+        example: 77b62cff-0020-43d9-a90c-5d35bff89f7a
+        type: string
+    type: object
+  types.BadUuidResponse:
+    description: invalid UUID format
+    properties:
+      error:
+        example: 'invalid UUID length: 37'
+        type: string
+    type: object
+  types.ErrorResponse:
+    description: an unknown error
+    properties:
+      error:
+        example: internal server error
+        type: string
+    type: object
+  types.Pagination:
+    description: pagination information
+    properties:
+      page:
+        example: 1
+        type: integer
+      page_size:
+        example: 50
+        type: integer
+      total:
+        example: 2
+        type: integer
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+info:
+  contact:
+    email: cda@sporiff.dev
+    name: Ciarán Ainsworth
+    url: https://codeberg.org/sporiff/eigakanban/issues
+  description: The REST API for the eigakanban server
+  license:
+    name: AGPL3 or Later
+    url: https://codeberg.org/sporiff/eigakanban/src/branch/main/LICENSE
+  title: eigakanban API
+  version: "1.0"
+paths:
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Get all users in a paginated list
+      parameters:
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.GetAllUsers.PaginatedUsersResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Get all users
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Add new user
+      parameters:
+      - description: User details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.AddUser.AddUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.AddUser.MissingFieldResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Add new user
+      tags:
+      - users
+  /users/{uuid}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a user by UUID
+      parameters:
+      - description: User UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.DeleteUser.UserDeletedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Delete user
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      description: Get a user by UUID
+      parameters:
+      - description: User UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.BadUuidResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Get user by UUID
+      tags:
+      - users
+    patch:
+      consumes:
+      - application/json
+      description: Update user details by UUID
+      parameters:
+      - description: User UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      - description: User details to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateUser.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.BadUuidResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Update user details
+      tags:
+      - users
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"
