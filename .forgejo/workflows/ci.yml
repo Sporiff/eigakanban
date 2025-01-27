@@ -1,0 +1,16 @@
+on: [push]
+jobs:
+  api-build:
+    runs-on: docker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.23.5
+      - run: go build
+        working-directory: api
+      - uses: https://code.forgejo.org/forgejo/upload-artifact@v4
+        with: 
+          name: api-build.zip
+          path: api/eigakanban
+
