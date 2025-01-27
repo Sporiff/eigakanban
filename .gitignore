@@ -8,6 +8,7 @@
 *.dll
 *.so
 *.dylib
+api/eigakanban
 
 # Test binary, built with `go test -c`
 *.test
