@@ -10,6 +10,10 @@ RETURNING
     bio,
     created_date;
 
+-- name: GetUserCount :one
+SELECT COUNT (*)
+FROM users;
+
 -- name: GetUserByUuid :one
 SELECT
     uuid,
