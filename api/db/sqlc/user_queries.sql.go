@@ -159,9 +159,9 @@ func (q *Queries) GetUserByUuid(ctx context.Context, userUuid pgtype.UUID) (GetU
 const updateUserDetails = `-- name: UpdateUserDetails :one
 UPDATE users
 SET
-    username = $1,
-    full_name = $2,
-    bio = $3
+    username = COALESCE($1, username),
+    full_name = COALESCE($2, full_name),
+    bio = COALESCE($3, bio)
 WHERE
     uuid = $4
 RETURNING

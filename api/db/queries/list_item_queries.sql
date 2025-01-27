@@ -6,8 +6,8 @@ WITH new_item AS (
                    (SELECT list_id FROM lists WHERE lists.uuid = @list_uuid),
                    (SELECT item_id FROM items WHERE items.uuid = @item_uuid),
                    @new_position,
-                   (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE uuid = @list_uuid) AND list_items.position = @new_position - 1),
-                   (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE uuid = @list_uuid) AND list_items.position = @new_position + 1)
+                   (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE uuid = @list_uuid) AND list_items.position = @prev_position),
+                   (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE uuid = @list_uuid) AND list_items.position = @next_position)
                )
         RETURNING list_item_id, list_id, position, prev_item_id, next_item_id
 ),
@@ -52,8 +52,8 @@ WITH current_item AS (
          UPDATE list_items
              SET
                  position = @new_position,
-                 prev_item_id = (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM current_item) AND list_items.position = @new_position - 1),
-                 next_item_id = (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM current_item) AND list_items.position = @new_position + 1)
+                 prev_item_id = (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM current_item) AND list_items.position = @prev_position),
+                 next_item_id = (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM current_item) AND list_items.position = @next_position)
              WHERE list_item_id = (SELECT list_item_id FROM current_item)
              RETURNING uuid, position, prev_item_id, next_item_id
      )
@@ -84,7 +84,7 @@ WITH deleted_item AS (
 SELECT 1;
 
 -- name: MoveItemToAnotherList :one
--- Arguments: list_item_uuid, target_list_uuid, new_position
+-- Arguments: list_item_uuid, target_list_uuid, new_position, prev_position, next_position
 WITH current_item AS (
     SELECT list_item_id, item_id, prev_item_id, next_item_id, position, list_id
     FROM list_items
@@ -112,8 +112,8 @@ WITH current_item AS (
                         (SELECT list_id FROM lists WHERE lists.uuid = @target_list_uuid),
                         (SELECT item_id FROM current_item),
                         @new_position,
-                        (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE lists.uuid = @target_list_uuid) AND list_items.position = @new_position - 1),
-                        (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE lists.uuid = @target_list_uuid) AND list_items.position = @new_position + 1)
+                        (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE lists.uuid = @target_list_uuid) AND list_items.position = @prev_position),
+                        (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE lists.uuid = @target_list_uuid) AND list_items.position = @next_position)
                     )
              RETURNING list_item_id, list_id, position, prev_item_id, next_item_id
      ),

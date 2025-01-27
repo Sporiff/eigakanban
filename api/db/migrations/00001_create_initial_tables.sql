@@ -99,8 +99,6 @@ CREATE INDEX idx_boards_created_date ON boards (created_date);
 
 CREATE INDEX idx_boards_user_id_created_date ON boards (user_id, created_date);
 
-CREATE INDEX idx_users_uuid ON users (uuid);
-
 -- Review indexes
 CREATE INDEX idx_reviews_uuid ON reviews (uuid);
 

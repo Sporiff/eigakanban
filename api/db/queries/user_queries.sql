@@ -41,9 +41,9 @@ LIMIT
 -- name: UpdateUserDetails :one
 UPDATE users
 SET
-    username = @new_username,
-    full_name = @new_name,
-    bio = @new_bio
+    username = COALESCE(@new_username, username),
+    full_name = COALESCE(@new_name, full_name),
+    bio = COALESCE(@new_bio, bio)
 WHERE
     uuid = @user_uuid
 RETURNING

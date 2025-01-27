@@ -18,8 +18,8 @@ WITH new_item AS (
                    (SELECT list_id FROM lists WHERE lists.uuid = $1),
                    (SELECT item_id FROM items WHERE items.uuid = $2),
                    $3,
-                   (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE uuid = $1) AND list_items.position = $4- 1),
-                   (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE uuid = $1) AND list_items.position = $5+ 1)
+                   (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE uuid = $1) AND list_items.position = $4),
+                   (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE uuid = $1) AND list_items.position = $5)
                )
         RETURNING list_item_id, list_id, position, prev_item_id, next_item_id
 ),
@@ -44,11 +44,11 @@ WHERE list_items.list_item_id = (SELECT list_item_id FROM new_item)
 `
 
 type AddItemToListAtPositionParams struct {
-	ListUuid    pgtype.UUID `json:"list_uuid"`
-	ItemUuid    pgtype.UUID `json:"item_uuid"`
-	NewPosition int32       `json:"new_position"`
-	NewPosition int32       `json:"-new_position"`
-	NewPosition int32       `json:"+new_position"`
+	ListUuid     pgtype.UUID `json:"list_uuid"`
+	ItemUuid     pgtype.UUID `json:"item_uuid"`
+	NewPosition  int32       `json:"new_position"`
+	PrevPosition int32       `json:"prev_position"`
+	NextPosition int32       `json:"next_position"`
 }
 
 type AddItemToListAtPositionRow struct {
@@ -62,8 +62,8 @@ func (q *Queries) AddItemToListAtPosition(ctx context.Context, arg AddItemToList
 		arg.ListUuid,
 		arg.ItemUuid,
 		arg.NewPosition,
-		arg.NewPosition,
-		arg.NewPosition,
+		arg.PrevPosition,
+		arg.NextPosition,
 	)
 	var i AddItemToListAtPositionRow
 	err := row.Scan(&i.Uuid, &i.Position)
@@ -120,8 +120,8 @@ WITH current_item AS (
          UPDATE list_items
              SET
                  position = $2,
-                 prev_item_id = (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM current_item) AND list_items.position = $3- 1),
-                 next_item_id = (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM current_item) AND list_items.position = $4+ 1)
+                 prev_item_id = (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM current_item) AND list_items.position = $3),
+                 next_item_id = (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM current_item) AND list_items.position = $4)
              WHERE list_item_id = (SELECT list_item_id FROM current_item)
              RETURNING uuid, position, prev_item_id, next_item_id
      )
@@ -132,8 +132,8 @@ FROM update_current_item
 type MoveItemInListParams struct {
 	ListItemUuid pgtype.UUID `json:"list_item_uuid"`
 	NewPosition  int32       `json:"new_position"`
-	NewPosition  int32       `json:"-new_position"`
-	NewPosition  int32       `json:"+new_position"`
+	PrevPosition int32       `json:"prev_position"`
+	NextPosition int32       `json:"next_position"`
 }
 
 type MoveItemInListRow struct {
@@ -148,8 +148,8 @@ func (q *Queries) MoveItemInList(ctx context.Context, arg MoveItemInListParams) 
 	row := q.db.QueryRow(ctx, moveItemInList,
 		arg.ListItemUuid,
 		arg.NewPosition,
-		arg.NewPosition,
-		arg.NewPosition,
+		arg.PrevPosition,
+		arg.NextPosition,
 	)
 	var i MoveItemInListRow
 	err := row.Scan(
@@ -189,8 +189,8 @@ WITH current_item AS (
                         (SELECT list_id FROM lists WHERE lists.uuid = $2),
                         (SELECT item_id FROM current_item),
                         $3,
-                        (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE lists.uuid = $2) AND list_items.position = $4- 1),
-                        (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE lists.uuid = $2) AND list_items.position = $5+ 1)
+                        (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE lists.uuid = $2) AND list_items.position = $4),
+                        (SELECT list_item_id FROM list_items WHERE list_id = (SELECT list_id FROM lists WHERE lists.uuid = $2) AND list_items.position = $5)
                     )
              RETURNING list_item_id, list_id, position, prev_item_id, next_item_id
      ),
@@ -219,8 +219,8 @@ type MoveItemToAnotherListParams struct {
 	ListItemUuid   pgtype.UUID `json:"list_item_uuid"`
 	TargetListUuid pgtype.UUID `json:"target_list_uuid"`
 	NewPosition    int32       `json:"new_position"`
-	NewPosition    int32       `json:"-new_position"`
-	NewPosition    int32       `json:"+new_position"`
+	PrevPosition   int32       `json:"prev_position"`
+	NextPosition   int32       `json:"next_position"`
 }
 
 type MoveItemToAnotherListRow struct {
@@ -230,14 +230,14 @@ type MoveItemToAnotherListRow struct {
 	NextItemID pgtype.Int8 `json:"next_item_id"`
 }
 
-// Arguments: list_item_uuid, target_list_uuid, new_position
+// Arguments: list_item_uuid, target_list_uuid, new_position, prev_position, next_position
 func (q *Queries) MoveItemToAnotherList(ctx context.Context, arg MoveItemToAnotherListParams) (MoveItemToAnotherListRow, error) {
 	row := q.db.QueryRow(ctx, moveItemToAnotherList,
 		arg.ListItemUuid,
 		arg.TargetListUuid,
 		arg.NewPosition,
-		arg.NewPosition,
-		arg.NewPosition,
+		arg.PrevPosition,
+		arg.NextPosition,
 	)
 	var i MoveItemToAnotherListRow
 	err := row.Scan(
