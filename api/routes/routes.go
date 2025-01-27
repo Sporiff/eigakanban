@@ -10,10 +10,16 @@ import (
 func SetupRoutes(router *gin.Engine, db *pgxpool.Pool) {
 	userHandler := handlers.NewUserHandler(db)
 
-	// User routes
-	router.GET("/users", userHandler.GetAllUsers)
-	router.GET("/users/:uuid", userHandler.GetUserByUuid)
-	router.PATCH("/users/:uuid", userHandler.UpdateUser)
-	router.POST("/users", userHandler.AddUser)
-	router.DELETE("/users/:uuid", userHandler.DeleteUser)
+	v1 := router.Group("/api/v1")
+	{
+		users := v1.Group("/users")
+		{
+			// User routes
+			users.GET("/", userHandler.GetAllUsers)
+			users.GET("/:uuid", userHandler.GetUserByUuid)
+			users.PATCH("/:uuid", userHandler.UpdateUser)
+			users.POST("/", userHandler.AddUser)
+			users.DELETE("/:uuid", userHandler.DeleteUser)
+		}
+	}
 }
