@@ -134,5 +134,7 @@ func (h *AuthMiddlewareHandler) handleExpiredToken(c *gin.Context) {
 
 	// Attach the new access token to the response headers
 	c.Header("New-Access-Token", newAccessTokenString)
+	// Set user UUID in context
+	c.Set("user_uuid", fetchedUser.Uuid.String())
 	c.Next()
 }
