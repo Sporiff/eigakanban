@@ -208,7 +208,7 @@ func (h *AuthHandler) LoginUser(c *gin.Context) {
 		return
 	}
 
-	c.Set("user_uuid", existingUser.Uuid)
+	c.Set("user_uuid", existingUser.Uuid.String())
 
 	// Return both tokens in the response
 	c.JSON(http.StatusOK, gin.H{
