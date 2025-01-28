@@ -115,6 +115,7 @@ func (h *AuthMiddlewareHandler) handleExpiredToken(c *gin.Context) {
 	fetchedUser, err := h.q.GetUserById(c.Request.Context(), userId)
 	if fetchedUser == (queries.GetUserByIdRow{}) {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
 	}
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
