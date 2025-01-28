@@ -208,6 +208,8 @@ func (h *AuthHandler) LoginUser(c *gin.Context) {
 		return
 	}
 
+	c.Set("user_uuid", existingUser.Uuid)
+
 	// Return both tokens in the response
 	c.JSON(http.StatusOK, gin.H{
 		"access_token":  accessTokenString,
