@@ -72,6 +72,7 @@ func (q *Queries) DeleteBoard(ctx context.Context, boardUuid pgtype.UUID) error 
 
 const getAllBoards = `-- name: GetAllBoards :many
 SELECT
+    uuid,
     name,
     description
 FROM
@@ -90,6 +91,7 @@ type GetAllBoardsParams struct {
 }
 
 type GetAllBoardsRow struct {
+	Uuid        pgtype.UUID `json:"uuid"`
 	Name        string      `json:"name"`
 	Description pgtype.Text `json:"description"`
 }
@@ -103,7 +105,7 @@ func (q *Queries) GetAllBoards(ctx context.Context, arg GetAllBoardsParams) ([]G
 	var items []GetAllBoardsRow
 	for rows.Next() {
 		var i GetAllBoardsRow
-		if err := rows.Scan(&i.Name, &i.Description); err != nil {
+		if err := rows.Scan(&i.Uuid, &i.Name, &i.Description); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -116,6 +118,7 @@ func (q *Queries) GetAllBoards(ctx context.Context, arg GetAllBoardsParams) ([]G
 
 const getBoardByUuid = `-- name: GetBoardByUuid :one
 SELECT
+    uuid,
     name,
     description
 FROM
@@ -127,6 +130,7 @@ LIMIT
 `
 
 type GetBoardByUuidRow struct {
+	Uuid        pgtype.UUID `json:"uuid"`
 	Name        string      `json:"name"`
 	Description pgtype.Text `json:"description"`
 }
@@ -134,12 +138,38 @@ type GetBoardByUuidRow struct {
 func (q *Queries) GetBoardByUuid(ctx context.Context, boardUuid pgtype.UUID) (GetBoardByUuidRow, error) {
 	row := q.db.QueryRow(ctx, getBoardByUuid, boardUuid)
 	var i GetBoardByUuidRow
-	err := row.Scan(&i.Name, &i.Description)
+	err := row.Scan(&i.Uuid, &i.Name, &i.Description)
 	return i, err
+}
+
+const getBoardsCount = `-- name: GetBoardsCount :one
+SELECT COUNT (*)
+FROM boards
+`
+
+func (q *Queries) GetBoardsCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getBoardsCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getBoardsCountForUser = `-- name: GetBoardsCountForUser :one
+SELECT COUNT (*)
+FROM boards
+WHERE boards.user_id = (SELECT user_id FROM users WHERE users.uuid = $1)
+`
+
+func (q *Queries) GetBoardsCountForUser(ctx context.Context, userUuid pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, getBoardsCountForUser, userUuid)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const getBoardsForUser = `-- name: GetBoardsForUser :many
 SELECT
+    b.uuid,
     b.name,
     b.description
 FROM
@@ -162,6 +192,7 @@ type GetBoardsForUserParams struct {
 }
 
 type GetBoardsForUserRow struct {
+	Uuid        pgtype.UUID `json:"uuid"`
 	Name        string      `json:"name"`
 	Description pgtype.Text `json:"description"`
 }
@@ -175,7 +206,7 @@ func (q *Queries) GetBoardsForUser(ctx context.Context, arg GetBoardsForUserPara
 	var items []GetBoardsForUserRow
 	for rows.Next() {
 		var i GetBoardsForUserRow
-		if err := rows.Scan(&i.Name, &i.Description); err != nil {
+		if err := rows.Scan(&i.Uuid, &i.Name, &i.Description); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -190,7 +221,7 @@ const updateBoard = `-- name: UpdateBoard :one
 UPDATE boards
 SET
     name = $1,
-    description = $2
+    description = COALESCE($2, description)
 WHERE
     uuid = $3
 RETURNING

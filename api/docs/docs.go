@@ -156,11 +156,253 @@ const docTemplate = `{
                 }
             }
         },
+        "/boards": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all boards in a paginated list",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Get all boards",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.GetAllBoards.PaginatedBoardsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a new board for a user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Add a new board",
+                "parameters": [
+                    {
+                        "description": "Board details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AddBoard.AddBoardRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Board added successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.BoardsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing mandatory fields",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.MissingFieldResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/boards/{uuid}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a board by UUID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Get board by UUID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Board UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.BoardsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a board by UUID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Delete board",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Board UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Board deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.DeleteBoard.BoardDeletedResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/{uuid}/boards": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all boards for a user in a paginated list",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Get all boards for a user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.GetAllBoards.PaginatedBoardsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "security": [
                     {
-                        "BasicAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Get all users in a paginated list",
@@ -208,7 +450,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BasicAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Get a user by UUID",
@@ -253,6 +495,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a user by UUID",
                 "consumes": [
                     "application/json"
@@ -291,7 +538,7 @@ const docTemplate = `{
             "patch": {
                 "security": [
                     {
-                        "BasicAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Update user details by UUID",
@@ -347,12 +594,73 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "handlers.AddBoard.AddBoardRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "user_uuid"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "A short description"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "My Queue"
+                },
+                "user_uuid": {
+                    "type": "string",
+                    "example": "00ca71c5-7c8a-4470-ab47-f962d33c1303"
+                }
+            }
+        },
+        "handlers.BoardsResponse": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "A short description"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "My queue"
+                },
+                "uuid": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                }
+            }
+        },
+        "handlers.DeleteBoard.BoardDeletedResponse": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "string",
+                    "example": "Board deleted: 77b62cff-0020-43d9-a90c-5d35bff89f7a"
+                }
+            }
+        },
         "handlers.DeleteUser.UserDeletedResponse": {
             "type": "object",
             "properties": {
                 "success": {
                     "type": "string",
                     "example": "user deleted: 77b62cff-0020-43d9-a90c-5d35bff89f7a"
+                }
+            }
+        },
+        "handlers.GetAllBoards.PaginatedBoardsResponse": {
+            "type": "object",
+            "properties": {
+                "boards": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handlers.BoardsResponse"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/types.Pagination"
                 }
             }
         },
@@ -472,6 +780,19 @@ const docTemplate = `{
                 }
             }
         },
+        "handlers.UpdateBoard.UpdateBoardRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "A short description"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "My Board"
+                }
+            }
+        },
         "handlers.UpdateUser.UpdateUserRequest": {
             "type": "object",
             "properties": {
@@ -541,8 +862,10 @@ const docTemplate = `{
         }
     },
     "securityDefinitions": {
-        "BasicAuth": {
-            "type": "basic"
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     },
     "externalDocs": {

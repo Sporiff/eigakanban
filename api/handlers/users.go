@@ -26,7 +26,8 @@ func NewUserHandler(db *pgxpool.Pool) *UserHandler {
 }
 
 // UserResponse represents the response returned by the API
-// @Description JSON representation of a user in the system
+//
+//	@Description	JSON representation of a user in the system
 type UserResponse struct {
 	UUID     string `json:"uuid" example:"77b62cff-0020-43d9-a90c-5d35bff89f7a"`
 	Username string `json:"username" example:"username"`
@@ -36,20 +37,20 @@ type UserResponse struct {
 
 // GetAllUsers returns a paginated array of users
 //
-//		@Summary		Get all users
-//		@Description	Get all users in a paginated list
-//	 	@Security		BasicAuth
-//		@Tags			users
-//		@Accept			json
-//		@Produce		json
-//		@Param			page	query		int				false	"Page"
-//	 	@Param			page_size query int false "Page size"
-//		@Success		200		{object}	handlers.GetAllUsers.PaginatedUsersResponse
-//		@Failure		500		{object}	types.ErrorResponse
-//		@Router			/users [get]
+//	@Summary		Get all users
+//	@Description	Get all users in a paginated list
+//	@Security		BearerAuth
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			page		query		int	false	"Page"
+//	@Param			page_size	query		int	false	"Page size"
+//	@Success		200			{object}	handlers.GetAllUsers.PaginatedUsersResponse
+//	@Failure		500			{object}	types.ErrorResponse
+//	@Router			/users [get]
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	// PaginatedUsersResponse represents a response containing a list of users
-	// @Description a response containing a list of users and a pagination object
+	//	@Description	a response containing a list of users and a pagination object
 	type PaginatedUsersResponse struct {
 		Pagination types.Pagination `json:"pagination"`
 		Users      []UserResponse   `json:"users"`
@@ -95,11 +96,11 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 //
 //	@Summary		Get user by UUID
 //	@Description	Get a user by UUID
-//	@Security		BasicAuth
+//	@Security		BearerAuth
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			uuid	path		string				true	"User UUID"
+//	@Param			uuid	path		string	true	"User UUID"
 //	@Success		200		{object}	UserResponse
 //	@Failure		400		{object}	types.ErrorResponse
 //	@Failure		500		{object}	types.ErrorResponse
@@ -123,21 +124,21 @@ func (h *UserHandler) GetUserByUuid(c *gin.Context) {
 
 // UpdateUser updates user details
 //
-//		@Summary		Update user details
-//		@Description	Update user details by UUID
-//	 	@Security		BasicAuth
-//		@Tags			users
-//		@Accept			json
-//		@Produce		json
-//		@Param			uuid	path		string				true	"User UUID"
-//		@Param			body	body		handlers.UpdateUser.UpdateUserRequest	true	"User details to update"
-//		@Success		200		{object}	UserResponse
-//		@Failure		400		{object}	types.ErrorResponse
-//		@Failure		500		{object}	types.ErrorResponse
-//		@Router			/users/{uuid} [patch]
+//	@Summary		Update user details
+//	@Description	Update user details by UUID
+//	@Security		BearerAuth
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			uuid	path		string									true	"User UUID"
+//	@Param			body	body		handlers.UpdateUser.UpdateUserRequest	true	"User details to update"
+//	@Success		200		{object}	UserResponse
+//	@Failure		400		{object}	types.ErrorResponse
+//	@Failure		500		{object}	types.ErrorResponse
+//	@Router			/users/{uuid} [patch]
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	// UpdateUserRequest represents the request body for updating a user
-	// @Description a request body for updating a user
+	//	@Description	a request body for updating a user
 	type UpdateUserRequest struct {
 		NewUsername *string `json:"username" example:"new_username"`
 		NewName     *string `json:"full_name" example:"Tim Test"`
@@ -201,17 +202,17 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 //
 //	@Summary		Delete user
 //	@Description	Delete a user by UUID
-//	@Security		BasicAuth
+//	@Security		BearerAuth
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			uuid	path		string				true	"User UUID"
-//	@Success		200		{object}	handlers.DeleteUser.UserDeletedResponse "User deleted successfully"
+//	@Param			uuid	path		string									true	"User UUID"
+//	@Success		200		{object}	handlers.DeleteUser.UserDeletedResponse	"User deleted successfully"
 //	@Failure		500		{object}	types.ErrorResponse
 //	@Router			/users/{uuid} [delete]
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	// UserDeletedResponse represents a success message for a user deletion
-	// @Description A success message confirming the user was deleted
+	//	@Description	A success message confirming the user was deleted
 	type UserDeletedResponse struct {
 		Message string `json:"success" example:"user deleted: 77b62cff-0020-43d9-a90c-5d35bff89f7a"`
 	}

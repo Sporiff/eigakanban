@@ -22,6 +22,7 @@ RETURNING
 
 -- name: GetBoardByUuid :one
 SELECT
+    uuid,
     name,
     description
 FROM
@@ -33,6 +34,7 @@ LIMIT
 
 -- name: GetBoardsForUser :many
 SELECT
+    b.uuid,
     b.name,
     b.description
 FROM
@@ -47,8 +49,18 @@ LIMIT
     OFFSET
     @page;
 
+-- name: GetBoardsCount :one
+SELECT COUNT (*)
+FROM boards;
+
+-- name: GetBoardsCountForUser :one
+SELECT COUNT (*)
+FROM boards
+WHERE boards.user_id = (SELECT user_id FROM users WHERE users.uuid = @user_uuid);
+
 -- name: GetAllBoards :many
 SELECT
+    uuid,
     name,
     description
 FROM
@@ -64,7 +76,7 @@ LIMIT
 UPDATE boards
 SET
     name = @board_name,
-    description = @board_description
+    description = COALESCE(@board_description, description)
 WHERE
     uuid = @board_uuid
 RETURNING

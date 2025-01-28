@@ -1,10 +1,52 @@
 basePath: /api/v1
 definitions:
+  handlers.AddBoard.AddBoardRequest:
+    properties:
+      description:
+        example: A short description
+        type: string
+      name:
+        example: My Queue
+        type: string
+      user_uuid:
+        example: 00ca71c5-7c8a-4470-ab47-f962d33c1303
+        type: string
+    required:
+    - name
+    - user_uuid
+    type: object
+  handlers.BoardsResponse:
+    properties:
+      description:
+        example: A short description
+        type: string
+      name:
+        example: My queue
+        type: string
+      uuid:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+    type: object
+  handlers.DeleteBoard.BoardDeletedResponse:
+    properties:
+      success:
+        example: 'Board deleted: 77b62cff-0020-43d9-a90c-5d35bff89f7a'
+        type: string
+    type: object
   handlers.DeleteUser.UserDeletedResponse:
     properties:
       success:
         example: 'user deleted: 77b62cff-0020-43d9-a90c-5d35bff89f7a'
         type: string
+    type: object
+  handlers.GetAllBoards.PaginatedBoardsResponse:
+    properties:
+      boards:
+        items:
+          $ref: '#/definitions/handlers.BoardsResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/types.Pagination'
     type: object
   handlers.GetAllUsers.PaginatedUsersResponse:
     properties:
@@ -84,6 +126,15 @@ definitions:
     - email
     - password
     - username
+    type: object
+  handlers.UpdateBoard.UpdateBoardRequest:
+    properties:
+      description:
+        example: A short description
+        type: string
+      name:
+        example: My Board
+        type: string
     type: object
   handlers.UpdateUser.UpdateUserRequest:
     properties:
@@ -235,6 +286,159 @@ paths:
       summary: Register a new user account
       tags:
       - auth
+  /boards:
+    get:
+      consumes:
+      - application/json
+      description: Get all boards in a paginated list
+      parameters:
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.GetAllBoards.PaginatedBoardsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all boards
+      tags:
+      - boards
+    post:
+      consumes:
+      - application/json
+      description: Add a new board for a user
+      parameters:
+      - description: Board details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.AddBoard.AddBoardRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Board added successfully
+          schema:
+            $ref: '#/definitions/handlers.BoardsResponse'
+        "400":
+          description: Missing mandatory fields
+          schema:
+            $ref: '#/definitions/handlers.MissingFieldResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a new board
+      tags:
+      - boards
+  /boards/{uuid}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a board by UUID
+      parameters:
+      - description: Board UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Board deleted successfully
+          schema:
+            $ref: '#/definitions/handlers.DeleteBoard.BoardDeletedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete board
+      tags:
+      - boards
+    get:
+      consumes:
+      - application/json
+      description: Get a board by UUID
+      parameters:
+      - description: Board UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.BoardsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get board by UUID
+      tags:
+      - boards
+  /user/{uuid}/boards:
+    get:
+      consumes:
+      - application/json
+      description: Get all boards for a user in a paginated list
+      parameters:
+      - description: User UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.GetAllBoards.PaginatedBoardsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all boards for a user
+      tags:
+      - boards
   /users:
     get:
       consumes:
@@ -261,7 +465,7 @@ paths:
           schema:
             $ref: '#/definitions/types.ErrorResponse'
       security:
-      - BasicAuth: []
+      - BearerAuth: []
       summary: Get all users
       tags:
       - users
@@ -287,6 +491,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Delete user
       tags:
       - users
@@ -316,7 +522,7 @@ paths:
           schema:
             $ref: '#/definitions/types.ErrorResponse'
       security:
-      - BasicAuth: []
+      - BearerAuth: []
       summary: Get user by UUID
       tags:
       - users
@@ -352,11 +558,13 @@ paths:
           schema:
             $ref: '#/definitions/types.ErrorResponse'
       security:
-      - BasicAuth: []
+      - BearerAuth: []
       summary: Update user details
       tags:
       - users
 securityDefinitions:
-  BasicAuth:
-    type: basic
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"
