@@ -71,6 +71,17 @@ func (h *AuthMiddlewareHandler) AuthRequired() gin.HandlerFunc {
 			}
 		}
 
+		// Store the user UUID in the context
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			userUUID, ok := claims["user_uuid"].(string)
+			if !ok {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid user UUID in token"})
+				return
+			}
+
+			c.Set("user_uuid", userUUID)
+		}
+
 		// The token is valid
 		c.Next()
 	}
