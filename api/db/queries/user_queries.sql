@@ -27,6 +27,14 @@ WHERE
 LIMIT
     1;
 
+-- name: CountBoardsByNameAndOwner :one
+SELECT COUNT (*)
+FROM boards
+WHERE
+    user_id = (SELECT user_id FROM users WHERE users.uuid = @user_uuid)
+AND
+    name = @name;
+
 -- name: GetUserByUuid :one
 SELECT
     uuid,

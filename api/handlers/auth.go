@@ -26,7 +26,9 @@ func NewAuthHandler(db *pgxpool.Pool) *AuthHandler {
 }
 
 // MissingFieldResponse represents an error response for a missing required field
-// @Description an example of a missing field response
+//
+//	@Description	an example of a missing field respo
+//	@Description	an example of a missing field response
 type MissingFieldResponse struct {
 	Error struct {
 		Username string `json:"username" example:"This field is required"`
@@ -41,13 +43,13 @@ type MissingFieldResponse struct {
 //	@Accept			json
 //	@Produce		json
 //	@Param			body	body		handlers.RegisterUser.RegisterUserRequest	true	"User details"
-//	@Success		200		{object}	handlers.UserResponse "User registered successfully"
-//	@Failure		400		{object}	handlers.MissingFieldResponse "Missing mandatory fields"
+//	@Success		200		{object}	handlers.UserResponse						"User registered successfully"
+//	@Failure		400		{object}	handlers.MissingFieldResponse				"Missing mandatory fields"
 //	@Failure		500		{object}	types.ErrorResponse
 //	@Router			/auth/register [post]
 func (h *AuthHandler) RegisterUser(c *gin.Context) {
 	// RegisterUserRequest represents the request body for registering a user
-	// @Description A request body for registering a new user
+	//	@Description	A request body for registering a new user
 	type RegisterUserRequest struct {
 		Username string `json:"username" example:"test" binding:"required"`
 		Email    string `json:"email" example:"test@test.com" binding:"required,email"`
@@ -98,21 +100,21 @@ func (h *AuthHandler) RegisterUser(c *gin.Context) {
 
 // LoginUser logs in a user
 //
-//		@Summary		Log in
-//		@Description	Log in to user account using email or username
-//		@Tags			auth
-//		@Accept			json
-//		@Produce		json
-//		@Param			body	body		handlers.LoginUser.LoginUserRequest	true	"Login details"
-//		@Success		200		{object}	handlers.LoginUser.TokenResponse "Successful login"
-//		@Failure		400		{object}	handlers.MissingFieldResponse "Missing mandatory fields"
-//	 	@Failure		404		{object} 	handlers.LoginUser.NoUserFoundResponse "User not found"
-//		@Failure		500		{object}	types.ErrorResponse
-//		@Router			/auth/login [post]
+//	@Summary		Log in
+//	@Description	Log in to user account using email or username
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		handlers.LoginUser.LoginUserRequest		true	"Login details"
+//	@Success		200		{object}	handlers.LoginUser.TokenResponse		"Successful login"
+//	@Failure		400		{object}	handlers.MissingFieldResponse			"Missing mandatory fields"
+//	@Failure		404		{object}	handlers.LoginUser.NoUserFoundResponse	"User not found"
+//	@Failure		500		{object}	types.ErrorResponse
+//	@Router			/auth/login [post]
 func (h *AuthHandler) LoginUser(c *gin.Context) {
 	// LoginUserRequest represents the request body for logging in a user
-	// @Description request body for a login request.
-	// @Description either email or username must be provided
+	//	@Description	request body for a login request.
+	//	@Description	either email or username must be provided
 	type LoginUserRequest struct {
 		Email    string `json:"email" example:"test@test.com"`
 		Username string `json:"username" example:"test"`
@@ -120,7 +122,7 @@ func (h *AuthHandler) LoginUser(c *gin.Context) {
 	}
 
 	// TokenResponse represents the response containing the JWT token
-	// @Description a response containing a JWT for authentication
+	//	@Description	a response containing a JWT for authentication
 	type TokenResponse struct {
 		Token string `json:"token" example:"jwt-token-string"`
 	}
@@ -220,10 +222,10 @@ func (h *AuthHandler) LoginUser(c *gin.Context) {
 //	@Tags			auth
 //	@Accept			json
 //	@Produce		json
-//	@Success		200		{object}	handlers.LogoutUser.LogoutSuccessResponse "Logout successful"
-//	@Failure		400		{object}	handlers.LogoutUser.AlreadyLoggedOutResponse "Already logged out"
-//	@Failure      	400     {object}    handlers.LogoutUser.RefreshTokenMissingResponse "Missing refresh token"
-//	@Failure		500		{object}	types.ErrorResponse
+//	@Success		200	{object}	handlers.LogoutUser.LogoutSuccessResponse		"Logout successful"
+//	@Failure		400	{object}	handlers.LogoutUser.AlreadyLoggedOutResponse	"Already logged out"
+//	@Failure		400	{object}	handlers.LogoutUser.RefreshTokenMissingResponse	"Missing refresh token"
+//	@Failure		500	{object}	types.ErrorResponse
 //	@Router			/auth/logout [post]
 func (h *AuthHandler) LogoutUser(c *gin.Context) {
 	type RefreshTokenMissingResponse struct {

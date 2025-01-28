@@ -14,7 +14,7 @@ import (
 //	@title			eigakanban API
 //	@version		1.0
 //	@description	The REST API for the eigakanban server
-//  @BasePath		/api/v1
+//	@BasePath		/api/v1
 
 //	@contact.name	Ciarán Ainsworth
 //	@contact.url	https://codeberg.org/sporiff/eigakanban/issues
@@ -23,7 +23,9 @@ import (
 //	@license.name	AGPL3 or Later
 //	@license.url	https://codeberg.org/sporiff/eigakanban/src/branch/main/LICENSE
 
-//	@securityDefinitions.basic	BasicAuth
+//	@securityDefinitions.apikey	BearerAuth
+//	@in							header
+//	@name						Authorization
 
 // @externalDocs.description	OpenAPI
 // @externalDocs.url			https://swagger.io/resources/open-api/
