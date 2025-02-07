@@ -12,6 +12,7 @@ func SetupRoutes(router *gin.Engine, db *pgxpool.Pool) {
 	userHandler := handlers.NewUserHandler(db)
 	authHandler := handlers.NewAuthHandler(db)
 	boardsHandler := handlers.NewBoardsHandler(db)
+	itemsHandler := handlers.NewItemsHandler(db)
 
 	authMiddlewareHandler := middleware.NewAuthMiddlewareHandler(db)
 
@@ -36,6 +37,15 @@ func SetupRoutes(router *gin.Engine, db *pgxpool.Pool) {
 			boards.POST("/", boardsHandler.AddBoard)
 			boards.PATCH("/:uuid", boardsHandler.UpdateBoard)
 			boards.DELETE("/:uuid", boardsHandler.DeleteBoard)
+		}
+		items := v1.Group("/items")
+		items.Use(authMiddlewareHandler.AuthRequired())
+		{
+			// Items routes
+			items.GET("/", itemsHandler.GetAllItems)
+			items.GET("/:uuid", itemsHandler.GetItemByUuid)
+			items.POST("/", itemsHandler.AddItem)
+			items.PATCH("/:uuid", itemsHandler.UpdateItem)
 		}
 		auth := v1.Group("/auth")
 		{

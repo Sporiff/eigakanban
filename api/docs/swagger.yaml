@@ -15,6 +15,12 @@ definitions:
     - name
     - user_uuid
     type: object
+  handlers.AddItem.AddItemRequest:
+    properties:
+      title:
+        example: Item title
+        type: string
+    type: object
   handlers.BoardsResponse:
     properties:
       description:
@@ -33,6 +39,12 @@ definitions:
         example: 'Board deleted: 77b62cff-0020-43d9-a90c-5d35bff89f7a'
         type: string
     type: object
+  handlers.DeleteItem.ItemDeletedResponse:
+    properties:
+      success:
+        example: 'Item deleted: 77b62cff-0020-43d9-a90c-5d35bff89f7a'
+        type: string
+    type: object
   handlers.DeleteUser.UserDeletedResponse:
     properties:
       success:
@@ -48,6 +60,15 @@ definitions:
       pagination:
         $ref: '#/definitions/types.Pagination'
     type: object
+  handlers.GetAllItems.PaginatedItemsResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/handlers.ItemsResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/types.Pagination'
+    type: object
   handlers.GetAllUsers.PaginatedUsersResponse:
     properties:
       pagination:
@@ -56,6 +77,15 @@ definitions:
         items:
           $ref: '#/definitions/handlers.UserResponse'
         type: array
+    type: object
+  handlers.ItemsResponse:
+    properties:
+      title:
+        example: Item title
+        type: string
+      uuid:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
     type: object
   handlers.LoginUser.LoginUserRequest:
     properties:
@@ -102,7 +132,8 @@ definitions:
         type: string
     type: object
   handlers.MissingFieldResponse:
-    description: an example of a missing field response
+    description: an example of a missing field respo an example of a missing field
+      response
     properties:
       error:
         properties:
@@ -134,6 +165,12 @@ definitions:
         type: string
       name:
         example: My Board
+        type: string
+    type: object
+  handlers.UpdateItem.UpdateItemRequest:
+    properties:
+      title:
+        example: Item title
         type: string
     type: object
   handlers.UpdateUser.UpdateUserRequest:
@@ -404,6 +441,196 @@ paths:
       summary: Get board by UUID
       tags:
       - boards
+    patch:
+      consumes:
+      - application/json
+      description: Update board details by UUID
+      parameters:
+      - description: Board UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      - description: Board details to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateBoard.UpdateBoardRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.BoardsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update board details
+      tags:
+      - boards
+  /items:
+    get:
+      consumes:
+      - application/json
+      description: Get all items in a paginated list
+      parameters:
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.GetAllItems.PaginatedItemsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all items
+      tags:
+      - items
+    post:
+      consumes:
+      - application/json
+      description: Add a new item
+      parameters:
+      - description: Item details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.AddItem.AddItemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Item added successfully
+          schema:
+            $ref: '#/definitions/handlers.ItemsResponse'
+        "400":
+          description: Missing mandatory fields
+          schema:
+            $ref: '#/definitions/handlers.MissingFieldResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a new item
+      tags:
+      - items
+  /items/{uuid}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an item by UUID
+      parameters:
+      - description: Board UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Board deleted successfully
+          schema:
+            $ref: '#/definitions/handlers.DeleteItem.ItemDeletedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete item
+      tags:
+      - items
+    get:
+      consumes:
+      - application/json
+      description: Get an item by UUID
+      parameters:
+      - description: Item UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ItemsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get item by UUID
+      tags:
+      - items
+    patch:
+      consumes:
+      - application/json
+      description: Update item details by UUID
+      parameters:
+      - description: Item UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      - description: Item details to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateItem.UpdateItemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ItemsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update item details
+      tags:
+      - items
   /user/{uuid}/boards:
     get:
       consumes:

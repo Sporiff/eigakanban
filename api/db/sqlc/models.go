@@ -21,7 +21,6 @@ type Item struct {
 	ItemID      pgtype.Int8        `json:"item_id"`
 	Uuid        pgtype.UUID        `json:"uuid"`
 	Title       string             `json:"title"`
-	StatusID    pgtype.Int8        `json:"status_id"`
 	CreatedDate pgtype.Timestamptz `json:"created_date"`
 }
 
@@ -42,6 +41,7 @@ type ListItem struct {
 	Position    int32              `json:"position"`
 	PrevItemID  pgtype.Int8        `json:"prev_item_id"`
 	NextItemID  pgtype.Int8        `json:"next_item_id"`
+	StatusID    pgtype.Int8        `json:"status_id"`
 	CreatedDate pgtype.Timestamptz `json:"created_date"`
 }
 
