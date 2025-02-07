@@ -44,9 +44,7 @@ CREATE TABLE items (
                        item_id BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
                        uuid UUID DEFAULT gen_random_uuid () UNIQUE,
                        title TEXT NOT NULL,
-                       status_id BIGINT,
-                       created_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                       FOREIGN KEY (status_id) REFERENCES statuses (status_id)
+                       created_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE lists (
@@ -69,11 +67,13 @@ CREATE TABLE list_items (
                             position INT NOT NULL,
                             prev_item_id BIGINT,
                             next_item_id BIGINT,
+                            status_id BIGINT,
                             created_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
                             FOREIGN KEY (list_id) REFERENCES lists (list_id) ON DELETE CASCADE,
                             FOREIGN KEY (item_id) REFERENCES items (item_id) ON DELETE CASCADE,
                             FOREIGN KEY (prev_item_id) REFERENCES list_items (list_item_id) ON DELETE SET NULL,
                             FOREIGN KEY (next_item_id) REFERENCES list_items (list_item_id) ON DELETE SET NULL,
+                            FOREIGN KEY (status_id) REFERENCES statuses (status_id),
                             UNIQUE (list_id, item_id)
 );
 
@@ -133,9 +133,11 @@ CREATE INDEX idx_list_items_list_id_position ON list_items (list_id, position);
 
 CREATE INDEX idx_list_items_list_id_item_id ON list_items (list_id, item_id);
 
-CREATE INDEX idx_list_items_prev_item_id ON list_items (prev_item_id);
+CREATE INDEX idx_list_items_prev_item_id ON list_items (status_id, prev_item_id);
 
-CREATE INDEX idx_list_items_next_item_id ON list_items (next_item_id);
+CREATE INDEX idx_list_items_next_item_id ON list_items (status_id, next_item_id);
+
+CREATE INDEX idx_list_items_status_id ON list_items (list_id, status_id);
 
 -- Status indexes
 CREATE INDEX idx_statuses_uuid ON statuses (uuid);
@@ -205,6 +207,8 @@ DROP INDEX idx_list_items_list_id_item_id;
 DROP INDEX idx_list_items_prev_item_id;
 
 DROP INDEX idx_list_items_next_item_id;
+
+DROP INDEX idx_list_items_status_id;
 
 -- Drop all tables
 DROP TABLE refresh_tokens;
