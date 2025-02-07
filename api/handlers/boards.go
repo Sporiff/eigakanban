@@ -68,6 +68,7 @@ func (h *BoardsHandler) GetAllBoards(c *gin.Context) {
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	paginationValues := types.Pagination{
@@ -230,10 +231,10 @@ func (h *BoardsHandler) AddBoard(c *gin.Context) {
 
 // UpdateBoard updates board details
 //
-//	@Summary		Update user details
-//	@Description	Update user details by UUID
+//	@Summary		Update board details
+//	@Description	Update board details by UUID
 //	@Security		BearerAuth
-//	@Tags			users
+//	@Tags			boards
 //	@Accept			json
 //	@Produce		json
 //	@Param			uuid	path		string									true	"Board UUID"
@@ -241,7 +242,7 @@ func (h *BoardsHandler) AddBoard(c *gin.Context) {
 //	@Success		200		{object}	BoardsResponse
 //	@Failure		400		{object}	types.ErrorResponse
 //	@Failure		500		{object}	types.ErrorResponse
-//	@Router			/users/{uuid} [patch]
+//	@Router			/boards/{uuid} [patch]
 func (h *BoardsHandler) UpdateBoard(c *gin.Context) {
 	// UpdateBoardRequest represents the request body for updating a board
 	//	@Description	a request body for updating a board
