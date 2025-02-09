@@ -5,8 +5,6 @@ services:
       - "5432:5432"
     env_file:
       - api/.env
-    environment:
-      POSTGRES_DB: eigakanban
     volumes:
       - db:/var/lib/postgresql/data
 
