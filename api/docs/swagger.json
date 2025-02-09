@@ -4,9 +4,9 @@
         "description": "The REST API for the eigakanban server",
         "title": "eigakanban API",
         "contact": {
-            "name": "Ciarán Ainsworth",
+            "name": "eigakanban developers",
             "url": "https://codeberg.org/sporiff/eigakanban/issues",
-            "email": "cda@sporiff.dev"
+            "email": "~sporiff/eigakanban@lists.sr.ht"
         },
         "license": {
             "name": "AGPL3 or Later",

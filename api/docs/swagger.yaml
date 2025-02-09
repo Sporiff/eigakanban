@@ -226,8 +226,8 @@ externalDocs:
   url: https://swagger.io/resources/open-api/
 info:
   contact:
-    email: cda@sporiff.dev
-    name: Ciarán Ainsworth
+    email: ~sporiff/eigakanban@lists.sr.ht
+    name: eigakanban developers
     url: https://codeberg.org/sporiff/eigakanban/issues
   description: The REST API for the eigakanban server
   license:

@@ -16,9 +16,9 @@ import (
 //	@description	The REST API for the eigakanban server
 //	@BasePath		/api/v1
 
-//	@contact.name	Ciarán Ainsworth
+//	@contact.name	eigakanban developers
 //	@contact.url	https://codeberg.org/sporiff/eigakanban/issues
-//	@contact.email	cda@sporiff.dev
+//	@contact.email	~sporiff/eigakanban@lists.sr.ht
 
 //	@license.name	AGPL3 or Later
 //	@license.url	https://codeberg.org/sporiff/eigakanban/src/branch/main/LICENSE

@@ -10,9 +10,9 @@ const docTemplate = `{
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
         "contact": {
-            "name": "Ciarán Ainsworth",
+            "name": "eigakanban developers",
             "url": "https://codeberg.org/sporiff/eigakanban/issues",
-            "email": "cda@sporiff.dev"
+            "email": "~sporiff/eigakanban@lists.sr.ht"
         },
         "license": {
             "name": "AGPL3 or Later",
