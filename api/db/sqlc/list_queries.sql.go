@@ -13,25 +13,17 @@ import (
 
 const addList = `-- name: AddList :one
 INSERT INTO
-    lists (name, board_id, user_id)
+    lists (name, user_id)
 VALUES
     (
         $1,
-        (
-            SELECT
-                board_id
-            FROM
-                boards
-            WHERE
-                boards.uuid = $2
-        ),
         (
             SELECT
                 user_id
             FROM
                 users
             WHERE
-                users.uuid = $3
+                users.uuid = $2
         )
     )
 RETURNING
@@ -41,9 +33,8 @@ RETURNING
 `
 
 type AddListParams struct {
-	Name      string      `json:"name"`
-	BoardUuid pgtype.UUID `json:"board_uuid"`
-	UserUuid  pgtype.UUID `json:"user_uuid"`
+	Name     string      `json:"name"`
+	UserUuid pgtype.UUID `json:"user_uuid"`
 }
 
 type AddListRow struct {
@@ -53,7 +44,7 @@ type AddListRow struct {
 }
 
 func (q *Queries) AddList(ctx context.Context, arg AddListParams) (AddListRow, error) {
-	row := q.db.QueryRow(ctx, addList, arg.Name, arg.BoardUuid, arg.UserUuid)
+	row := q.db.QueryRow(ctx, addList, arg.Name, arg.UserUuid)
 	var i AddListRow
 	err := row.Scan(&i.Uuid, &i.Name, &i.CreatedDate)
 	return i, err
@@ -90,54 +81,6 @@ func (q *Queries) GetListByUuid(ctx context.Context, listUuid pgtype.UUID) (GetL
 	var i GetListByUuidRow
 	err := row.Scan(&i.Uuid, &i.Name)
 	return i, err
-}
-
-const getListsByBoard = `-- name: GetListsByBoard :many
-SELECT
-    l.uuid,
-    l.name
-FROM
-    lists l
-        JOIN boards b ON b.board_id = l.board_id
-WHERE
-    b.uuid = $1
-ORDER BY
-    l.created_date
-LIMIT
-    $3
-    OFFSET
-    $2
-`
-
-type GetListsByBoardParams struct {
-	BoardUuid pgtype.UUID `json:"board_uuid"`
-	Page      int32       `json:"page"`
-	PageSize  int32       `json:"page_size"`
-}
-
-type GetListsByBoardRow struct {
-	Uuid pgtype.UUID `json:"uuid"`
-	Name string      `json:"name"`
-}
-
-func (q *Queries) GetListsByBoard(ctx context.Context, arg GetListsByBoardParams) ([]GetListsByBoardRow, error) {
-	rows, err := q.db.Query(ctx, getListsByBoard, arg.BoardUuid, arg.Page, arg.PageSize)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetListsByBoardRow
-	for rows.Next() {
-		var i GetListsByBoardRow
-		if err := rows.Scan(&i.Uuid, &i.Name); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getListsByUser = `-- name: GetListsByUser :many
@@ -186,41 +129,6 @@ func (q *Queries) GetListsByUser(ctx context.Context, arg GetListsByUserParams) 
 		return nil, err
 	}
 	return items, nil
-}
-
-const moveList = `-- name: MoveList :one
-UPDATE lists l
-SET
-    board_id = (
-        SELECT
-            b.board_id
-        FROM
-            boards b
-        WHERE
-            b.uuid = $1
-    )
-WHERE
-    l.uuid = $2
-RETURNING
-    l.uuid,
-    l.name
-`
-
-type MoveListParams struct {
-	BoardUuid pgtype.UUID `json:"board_uuid"`
-	ListUuid  pgtype.UUID `json:"list_uuid"`
-}
-
-type MoveListRow struct {
-	Uuid pgtype.UUID `json:"uuid"`
-	Name string      `json:"name"`
-}
-
-func (q *Queries) MoveList(ctx context.Context, arg MoveListParams) (MoveListRow, error) {
-	row := q.db.QueryRow(ctx, moveList, arg.BoardUuid, arg.ListUuid)
-	var i MoveListRow
-	err := row.Scan(&i.Uuid, &i.Name)
-	return i, err
 }
 
 const updateList = `-- name: UpdateList :one

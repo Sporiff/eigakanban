@@ -104,6 +104,140 @@ func (q *Queries) DeleteItemFromList(ctx context.Context, listItemUuid pgtype.UU
 	return err
 }
 
+const getAllListItems = `-- name: GetAllListItems :many
+SELECT li.uuid AS list_item_uuid, l.uuid AS list_uuid, i.uuid AS item_uuid, s.label, li.position
+FROM list_items li
+JOIN lists l ON l.list_id = li.list_id
+JOIN items i ON i.item_id = li.item_id
+JOIN statuses s ON s.status_id = li.status_id
+ORDER BY
+    li.position
+LIMIT
+    $2
+    OFFSET
+    $1
+`
+
+type GetAllListItemsParams struct {
+	Page     int32 `json:"page"`
+	PageSize int32 `json:"page_size"`
+}
+
+type GetAllListItemsRow struct {
+	ListItemUuid pgtype.UUID `json:"list_item_uuid"`
+	ListUuid     pgtype.UUID `json:"list_uuid"`
+	ItemUuid     pgtype.UUID `json:"item_uuid"`
+	Label        pgtype.Text `json:"label"`
+	Position     int32       `json:"position"`
+}
+
+func (q *Queries) GetAllListItems(ctx context.Context, arg GetAllListItemsParams) ([]GetAllListItemsRow, error) {
+	rows, err := q.db.Query(ctx, getAllListItems, arg.Page, arg.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllListItemsRow
+	for rows.Next() {
+		var i GetAllListItemsRow
+		if err := rows.Scan(
+			&i.ListItemUuid,
+			&i.ListUuid,
+			&i.ItemUuid,
+			&i.Label,
+			&i.Position,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllListItemsCount = `-- name: GetAllListItemsCount :one
+SELECT COUNT(*)
+FROM list_items
+`
+
+func (q *Queries) GetAllListItemsCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getAllListItemsCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getListItemsByListUuid = `-- name: GetListItemsByListUuid :many
+SELECT li.uuid AS list_item_uuid, l.uuid AS list_uuid, i.uuid AS item_uuid, s.label, li.position
+FROM list_items li
+JOIN lists l ON l.list_id = li.list_id
+JOIN items i ON i.item_id = li.item_id
+JOIN statuses s ON s.status_id = li.status_id
+WHERE
+    li.uuid = $1
+ORDER BY
+    li.position
+LIMIT
+    $3
+    OFFSET
+    $2
+`
+
+type GetListItemsByListUuidParams struct {
+	ListUuid pgtype.UUID `json:"list_uuid"`
+	Page     int32       `json:"page"`
+	PageSize int32       `json:"page_size"`
+}
+
+type GetListItemsByListUuidRow struct {
+	ListItemUuid pgtype.UUID `json:"list_item_uuid"`
+	ListUuid     pgtype.UUID `json:"list_uuid"`
+	ItemUuid     pgtype.UUID `json:"item_uuid"`
+	Label        pgtype.Text `json:"label"`
+	Position     int32       `json:"position"`
+}
+
+func (q *Queries) GetListItemsByListUuid(ctx context.Context, arg GetListItemsByListUuidParams) ([]GetListItemsByListUuidRow, error) {
+	rows, err := q.db.Query(ctx, getListItemsByListUuid, arg.ListUuid, arg.Page, arg.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetListItemsByListUuidRow
+	for rows.Next() {
+		var i GetListItemsByListUuidRow
+		if err := rows.Scan(
+			&i.ListItemUuid,
+			&i.ListUuid,
+			&i.ItemUuid,
+			&i.Label,
+			&i.Position,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getListItemsCountForList = `-- name: GetListItemsCountForList :one
+SELECT COUNT(*)
+FROM list_items li
+WHERE li.list_id = (SELECT l.list_id FROM lists l WHERE l.uuid = $1)
+`
+
+func (q *Queries) GetListItemsCountForList(ctx context.Context, listUuid pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, getListItemsCountForList, listUuid)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const moveItemInList = `-- name: MoveItemInList :one
 WITH current_item AS (
     SELECT list_item_id, prev_item_id, next_item_id, position, list_id, status_id

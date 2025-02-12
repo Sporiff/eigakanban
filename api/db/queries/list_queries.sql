@@ -1,17 +1,9 @@
 -- name: AddList :one
 INSERT INTO
-    lists (name, board_id, user_id)
+    lists (name, user_id)
 VALUES
     (
         @name,
-        (
-            SELECT
-                board_id
-            FROM
-                boards
-            WHERE
-                boards.uuid = @board_uuid
-        ),
         (
             SELECT
                 user_id
@@ -51,22 +43,6 @@ LIMIT
     OFFSET
     @page;
 
--- name: GetListsByBoard :many
-SELECT
-    l.uuid,
-    l.name
-FROM
-    lists l
-        JOIN boards b ON b.board_id = l.board_id
-WHERE
-    b.uuid = @board_uuid
-ORDER BY
-    l.created_date
-LIMIT
-    @page_size
-    OFFSET
-    @page;
-
 -- name: UpdateList :one
 UPDATE lists
 SET
@@ -76,23 +52,6 @@ WHERE
 RETURNING
     uuid,
     name;
-
--- name: MoveList :one
-UPDATE lists l
-SET
-    board_id = (
-        SELECT
-            b.board_id
-        FROM
-            boards b
-        WHERE
-            b.uuid = @board_uuid
-    )
-WHERE
-    l.uuid = @list_uuid
-RETURNING
-    l.uuid,
-    l.name;
 
 -- name: DeleteList :exec
 DELETE FROM lists

@@ -1,3 +1,40 @@
+-- name: GetAllListItems :many
+SELECT li.uuid AS list_item_uuid, l.uuid AS list_uuid, i.uuid AS item_uuid, s.label, li.position
+FROM list_items li
+JOIN lists l ON l.list_id = li.list_id
+JOIN items i ON i.item_id = li.item_id
+JOIN statuses s ON s.status_id = li.status_id
+ORDER BY
+    li.position
+LIMIT
+    @page_size
+    OFFSET
+    @page;
+
+-- name: GetListItemsByListUuid :many
+SELECT li.uuid AS list_item_uuid, l.uuid AS list_uuid, i.uuid AS item_uuid, s.label, li.position
+FROM list_items li
+JOIN lists l ON l.list_id = li.list_id
+JOIN items i ON i.item_id = li.item_id
+JOIN statuses s ON s.status_id = li.status_id
+WHERE
+    li.uuid = @list_uuid
+ORDER BY
+    li.position
+LIMIT
+    @page_size
+    OFFSET
+    @page;
+
+-- name: GetAllListItemsCount :one
+SELECT COUNT(*)
+FROM list_items;
+
+-- name: GetListItemsCountForList :one
+SELECT COUNT(*)
+FROM list_items li
+WHERE li.list_id = (SELECT l.list_id FROM lists l WHERE l.uuid = @list_uuid);
+
 -- name: AddItemToListAtPosition :one
 -- Arguments: list_uuid, item_uuid, new_position, status_uuid
 WITH new_item AS (

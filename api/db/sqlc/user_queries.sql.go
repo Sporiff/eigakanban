@@ -80,27 +80,6 @@ func (q *Queries) CheckForUser(ctx context.Context, arg CheckForUserParams) (int
 	return count, err
 }
 
-const countBoardsByNameAndOwner = `-- name: CountBoardsByNameAndOwner :one
-SELECT COUNT (*)
-FROM boards
-WHERE
-    user_id = (SELECT user_id FROM users WHERE users.uuid = $1)
-AND
-    name = $2
-`
-
-type CountBoardsByNameAndOwnerParams struct {
-	UserUuid pgtype.UUID `json:"user_uuid"`
-	Name     string      `json:"name"`
-}
-
-func (q *Queries) CountBoardsByNameAndOwner(ctx context.Context, arg CountBoardsByNameAndOwnerParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countBoardsByNameAndOwner, arg.UserUuid, arg.Name)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM users
 WHERE

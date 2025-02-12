@@ -19,17 +19,6 @@ CREATE TABLE refresh_tokens (
                         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE boards (
-                        board_id BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
-                        uuid UUID DEFAULT gen_random_uuid () UNIQUE,
-                        name TEXT NOT NULL,
-                        description TEXT,
-                        user_id BIGINT,
-                        created_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
-                        UNIQUE (name, user_id)
-);
-
 CREATE TABLE statuses (
                           status_id BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
                           uuid UUID DEFAULT gen_random_uuid () UNIQUE,
@@ -51,12 +40,9 @@ CREATE TABLE lists (
                        list_id BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
                        uuid UUID DEFAULT gen_random_uuid () UNIQUE,
                        name TEXT NOT NULL,
-                       board_id BIGINT,
                        user_id BIGINT NOT NULL,
                        created_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                       FOREIGN KEY (board_id) REFERENCES boards (board_id) ON DELETE CASCADE,
-                       FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
-                       UNIQUE (board_id, name)
+                       FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE list_items (
@@ -98,15 +84,6 @@ CREATE INDEX idx_users_username ON users (username);
 
 CREATE INDEX idx_users_email ON users (email);
 
--- Board indexes
-CREATE INDEX idx_boards_uuid ON boards (uuid);
-
-CREATE INDEX idx_boards_user_id ON boards (user_id);
-
-CREATE INDEX idx_boards_created_date ON boards (created_date);
-
-CREATE INDEX idx_boards_user_id_created_date ON boards (user_id, created_date);
-
 -- Review indexes
 CREATE INDEX idx_reviews_uuid ON reviews (uuid);
 
@@ -125,8 +102,6 @@ CREATE INDEX idx_items_uuid ON items (uuid);
 CREATE INDEX idx_lists_uuid ON lists (uuid);
 
 CREATE INDEX idx_lists_user_id_created_date ON lists (user_id, created_date);
-
-CREATE INDEX idx_lists_board_id_created_date ON lists (board_id, created_date);
 
 -- List item indexes
 CREATE INDEX idx_list_items_list_id_position ON list_items (list_id, position);
@@ -169,14 +144,6 @@ DROP INDEX idx_users_created_date;
 DROP INDEX idx_users_username;
 
 DROP INDEX idx_users_email;
-
-DROP INDEX idx_boards_uuid;
-
-DROP INDEX idx_boards_user_id;
-
-DROP INDEX idx_boards_created_date;
-
-DROP INDEX idx_boards_user_id_created_date;
 
 DROP INDEX idx_reviews_uuid;
 
@@ -222,8 +189,6 @@ DROP TABLE items;
 DROP TABLE statuses;
 
 DROP TABLE lists;
-
-DROP TABLE boards;
 
 DROP TABLE users;
 
