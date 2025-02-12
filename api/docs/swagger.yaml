@@ -7,6 +7,15 @@ definitions:
         example: Item title
         type: string
     type: object
+  types.AddStatusRequest:
+    description: A request body for adding a new status
+    properties:
+      label:
+        example: test
+        type: string
+    required:
+    - label
+    type: object
   types.AlreadyLoggedOutResponse:
     description: user already logged out
     properties:
@@ -108,6 +117,16 @@ definitions:
       pagination:
         $ref: '#/definitions/types.Pagination'
     type: object
+  types.PaginatedStatusesResponse:
+    description: a paginated list of statuses
+    properties:
+      pagination:
+        $ref: '#/definitions/types.Pagination'
+      statuses:
+        items:
+          $ref: '#/definitions/types.StatusesResponse'
+        type: array
+    type: object
   types.PaginatedUsersResponse:
     description: a response containing a list of users and a pagination object
     properties:
@@ -154,6 +173,16 @@ definitions:
     - email
     - password
     - username
+    type: object
+  types.StatusesResponse:
+    description: status details
+    properties:
+      label:
+        example: backlog
+        type: string
+      uuid:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
     type: object
   types.TokenResponse:
     description: a response containing a JWT for authentication and a refresh token
@@ -536,6 +565,65 @@ paths:
       summary: Get all items in a list
       tags:
       - lists
+  /statuses:
+    get:
+      consumes:
+      - application/json
+      description: Fetch all statuses as a paginated list
+      parameters:
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      responses:
+        "200":
+          description: Statuses
+          schema:
+            $ref: '#/definitions/types.PaginatedStatusesResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Fetch all statuses
+      tags:
+      - statuses
+    post:
+      consumes:
+      - application/json
+      description: Add a new status
+      parameters:
+      - description: Status details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/types.AddStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Status added successfully
+          schema:
+            $ref: '#/definitions/types.StatusesResponse'
+        "400":
+          description: Missing mandatory fields
+          schema:
+            $ref: '#/definitions/types.MissingFieldResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a new status
+      tags:
+      - statuses
   /users:
     get:
       consumes:

@@ -73,13 +73,13 @@ func (h *AuthMiddlewareHandler) AuthRequired() gin.HandlerFunc {
 
 		// Store the user UUID in the context
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			userUUID, ok := claims["user_uuid"].(string)
+			userUuid, ok := claims["user_uuid"]
 			if !ok {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid user UUID in token"})
 				return
 			}
 
-			c.Set("user_uuid", userUUID)
+			c.Set("user_uuid", userUuid)
 		}
 
 		// The token is valid
@@ -88,7 +88,6 @@ func (h *AuthMiddlewareHandler) AuthRequired() gin.HandlerFunc {
 }
 
 func (h *AuthMiddlewareHandler) handleExpiredToken(c *gin.Context) {
-	// TODO: look up how to handle this with headers and cookies
 	refreshToken := c.GetHeader("Refresh-Token")
 	if refreshToken == "" {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Refresh token missing"})
@@ -123,7 +122,7 @@ func (h *AuthMiddlewareHandler) handleExpiredToken(c *gin.Context) {
 
 	// Refresh token is valid, issue a new access token
 	newAccessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_uuid": fetchedUser.Uuid.String(),
+		"user_uuid": fetchedUser.Uuid,
 		"exp":       time.Now().Add(time.Hour * 1).Unix(), // Keep access key's life short
 	})
 
@@ -136,6 +135,6 @@ func (h *AuthMiddlewareHandler) handleExpiredToken(c *gin.Context) {
 	// Attach the new access token to the response headers
 	c.Header("New-Access-Token", newAccessTokenString)
 	// Set user UUID in context
-	c.Set("user_uuid", fetchedUser.Uuid.String())
+	c.Set("user_uuid", fetchedUser.Uuid)
 	c.Next()
 }

@@ -62,8 +62,8 @@ func (s *AuthService) RegisterUser(ctx context.Context, user types.RegisterUserR
 func (s *AuthService) createDefaultData(ctx context.Context, user queries.AddUserRow) error {
 
 	// Create a default list
-	_, err := s.q.AddList(ctx, queries.AddListParams{
-		Name:     "Default list",
+	list, err := s.q.AddList(ctx, queries.AddListParams{
+		Name:     "Watchlist",
 		UserUuid: user.Uuid,
 	})
 	if err != nil {
@@ -71,9 +71,17 @@ func (s *AuthService) createDefaultData(ctx context.Context, user queries.AddUse
 	}
 
 	// Create a default status
-	_, err = s.q.AddStatus(ctx, queries.AddStatusParams{
+	status, err := s.q.AddStatus(ctx, queries.AddStatusParams{
 		StatusLabel: helpers.MakePgString("backlog"),
 		UserUuid:    user.Uuid,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = s.q.AddListStatus(ctx, queries.AddListStatusParams{
+		ListUuid:   list.Uuid,
+		StatusUuid: status.Uuid,
 	})
 	if err != nil {
 		return err
@@ -106,7 +114,6 @@ func (s *AuthService) LoginUser(ctx context.Context, email, username, password s
 	userResponse.Init(existingUser.Uuid.String(), accessToken, refreshToken)
 
 	return userResponse, err
-
 }
 
 func (s *AuthService) checkForUser(ctx context.Context, email, username, password string) (queries.GetExistingUserRow, error) {

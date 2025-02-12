@@ -28,8 +28,7 @@ VALUES
     )
 RETURNING
     uuid,
-    label,
-    created_date
+    label
 `
 
 type AddStatusParams struct {
@@ -38,23 +37,21 @@ type AddStatusParams struct {
 }
 
 type AddStatusRow struct {
-	Uuid        pgtype.UUID        `json:"uuid"`
-	Label       pgtype.Text        `json:"label"`
-	CreatedDate pgtype.Timestamptz `json:"created_date"`
+	Uuid  pgtype.UUID `json:"uuid"`
+	Label pgtype.Text `json:"label"`
 }
 
 func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) (AddStatusRow, error) {
 	row := q.db.QueryRow(ctx, addStatus, arg.UserUuid, arg.StatusLabel)
 	var i AddStatusRow
-	err := row.Scan(&i.Uuid, &i.Label, &i.CreatedDate)
+	err := row.Scan(&i.Uuid, &i.Label)
 	return i, err
 }
 
 const getAllStatuses = `-- name: GetAllStatuses :many
 SELECT
     uuid,
-    label,
-    created_date
+    label
 FROM
     statuses
 ORDER BY
@@ -71,9 +68,8 @@ type GetAllStatusesParams struct {
 }
 
 type GetAllStatusesRow struct {
-	Uuid        pgtype.UUID        `json:"uuid"`
-	Label       pgtype.Text        `json:"label"`
-	CreatedDate pgtype.Timestamptz `json:"created_date"`
+	Uuid  pgtype.UUID `json:"uuid"`
+	Label pgtype.Text `json:"label"`
 }
 
 func (q *Queries) GetAllStatuses(ctx context.Context, arg GetAllStatusesParams) ([]GetAllStatusesRow, error) {
@@ -85,7 +81,7 @@ func (q *Queries) GetAllStatuses(ctx context.Context, arg GetAllStatusesParams) 
 	var items []GetAllStatusesRow
 	for rows.Next() {
 		var i GetAllStatusesRow
-		if err := rows.Scan(&i.Uuid, &i.Label, &i.CreatedDate); err != nil {
+		if err := rows.Scan(&i.Uuid, &i.Label); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -96,11 +92,22 @@ func (q *Queries) GetAllStatuses(ctx context.Context, arg GetAllStatusesParams) 
 	return items, nil
 }
 
+const getAllStatusesCount = `-- name: GetAllStatusesCount :one
+SELECT COUNT(*)
+FROM statuses
+`
+
+func (q *Queries) GetAllStatusesCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getAllStatusesCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getStatus = `-- name: GetStatus :one
 SELECT
     uuid,
-    label,
-    created_date
+    label
 FROM
     statuses
 WHERE
@@ -110,23 +117,37 @@ LIMIT
 `
 
 type GetStatusRow struct {
-	Uuid        pgtype.UUID        `json:"uuid"`
-	Label       pgtype.Text        `json:"label"`
-	CreatedDate pgtype.Timestamptz `json:"created_date"`
+	Uuid  pgtype.UUID `json:"uuid"`
+	Label pgtype.Text `json:"label"`
 }
 
 func (q *Queries) GetStatus(ctx context.Context, statusUuid pgtype.UUID) (GetStatusRow, error) {
 	row := q.db.QueryRow(ctx, getStatus, statusUuid)
 	var i GetStatusRow
-	err := row.Scan(&i.Uuid, &i.Label, &i.CreatedDate)
+	err := row.Scan(&i.Uuid, &i.Label)
 	return i, err
+}
+
+const getStatusesCountForUser = `-- name: GetStatusesCountForUser :one
+SELECT COUNT(*)
+FROM statuses s
+JOIN users u
+ON u.user_id = s.user_id
+WHERE
+    u.uuid = $1
+`
+
+func (q *Queries) GetStatusesCountForUser(ctx context.Context, userUuid pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, getStatusesCountForUser, userUuid)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const getStatusesForUser = `-- name: GetStatusesForUser :many
 SELECT
     s.uuid,
-    s.label,
-    s.created_date
+    s.label
 FROM
     statuses s
         JOIN users u ON u.user_id = s.user_id
@@ -147,9 +168,8 @@ type GetStatusesForUserParams struct {
 }
 
 type GetStatusesForUserRow struct {
-	Uuid        pgtype.UUID        `json:"uuid"`
-	Label       pgtype.Text        `json:"label"`
-	CreatedDate pgtype.Timestamptz `json:"created_date"`
+	Uuid  pgtype.UUID `json:"uuid"`
+	Label pgtype.Text `json:"label"`
 }
 
 func (q *Queries) GetStatusesForUser(ctx context.Context, arg GetStatusesForUserParams) ([]GetStatusesForUserRow, error) {
@@ -161,7 +181,7 @@ func (q *Queries) GetStatusesForUser(ctx context.Context, arg GetStatusesForUser
 	var items []GetStatusesForUserRow
 	for rows.Next() {
 		var i GetStatusesForUserRow
-		if err := rows.Scan(&i.Uuid, &i.Label, &i.CreatedDate); err != nil {
+		if err := rows.Scan(&i.Uuid, &i.Label); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

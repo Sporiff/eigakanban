@@ -43,6 +43,7 @@ func (h *ItemsHandler) GetAllItems(c *gin.Context) {
 	items, updatedPagination, err := h.itemsService.GetAllItems(c.Request.Context(), &pagination)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"pagination": updatedPagination, "items": items})

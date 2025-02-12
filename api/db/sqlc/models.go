@@ -35,6 +35,14 @@ type ListItem struct {
 	CreatedDate pgtype.Timestamptz `json:"created_date"`
 }
 
+type ListStatus struct {
+	ListStatusID pgtype.Int8        `json:"list_status_id"`
+	Uuid         pgtype.UUID        `json:"uuid"`
+	ListID       int64              `json:"list_id"`
+	StatusID     int64              `json:"status_id"`
+	CreatedDate  pgtype.Timestamptz `json:"created_date"`
+}
+
 type RefreshToken struct {
 	TokenID   pgtype.Int8        `json:"token_id"`
 	UserID    int64              `json:"user_id"`
@@ -68,5 +76,6 @@ type User struct {
 	Email          string             `json:"email"`
 	FullName       pgtype.Text        `json:"full_name"`
 	Bio            pgtype.Text        `json:"bio"`
+	Superuser      bool               `json:"superuser"`
 	CreatedDate    pgtype.Timestamptz `json:"created_date"`
 }

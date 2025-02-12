@@ -8,16 +8,16 @@ import (
 	"strconv"
 )
 
-func ValidatePagination(c *gin.Context) (types.Pagination, error) {
+func ValidatePagination(ctx *gin.Context) (types.Pagination, error) {
 	var pagination = types.Pagination{}
 
-	page, err := strconv.ParseInt(c.DefaultQuery("page", "1"), 10, 32)
+	page, err := strconv.ParseInt(ctx.DefaultQuery("page", "1"), 10, 32)
 	if err != nil {
 		errorMessage := fmt.Sprintf("invalid page parameter %d", page)
 		return pagination, errors.New(errorMessage)
 	}
 
-	pageSize, err := strconv.ParseInt(c.DefaultQuery("page_size", "50"), 10, 32)
+	pageSize, err := strconv.ParseInt(ctx.DefaultQuery("page_size", "50"), 10, 32)
 	if err != nil {
 		errorMessage := fmt.Sprintf("invalid page_size parameter %d", pageSize)
 		return pagination, errors.New(errorMessage)

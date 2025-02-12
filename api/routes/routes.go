@@ -64,6 +64,7 @@ func SetupRoutes(router *gin.Engine, db *pgxpool.Pool) {
 		{
 			// Statuses handlers
 			statuses.POST("/", statusesHandler.AddStatus)
+			statuses.GET("/", statusesHandler.GetStatusesForUser)
 		}
 		auth := v1.Group("/auth")
 		{
@@ -72,5 +73,7 @@ func SetupRoutes(router *gin.Engine, db *pgxpool.Pool) {
 			auth.POST("/login", authHandler.LoginUser)
 			auth.POST("/logout", authHandler.LogoutUser)
 		}
+		admin := v1.Group("/admin")
+		admin.Use(authMiddlewareHandler.AuthRequired())
 	}
 }

@@ -15,14 +15,12 @@ VALUES
     )
 RETURNING
     uuid,
-    label,
-    created_date;
+    label;
 
 -- name: GetStatus :one
 SELECT
     uuid,
-    label,
-    created_date
+    label
 FROM
     statuses
 WHERE
@@ -33,8 +31,7 @@ LIMIT
 -- name: GetStatusesForUser :many
 SELECT
     s.uuid,
-    s.label,
-    s.created_date
+    s.label
 FROM
     statuses s
         JOIN users u ON u.user_id = s.user_id
@@ -47,11 +44,22 @@ LIMIT
     OFFSET
     @page;
 
+-- name: GetStatusesCountForUser :one
+SELECT COUNT(*)
+FROM statuses s
+JOIN users u
+ON u.user_id = s.user_id
+WHERE
+    u.uuid = @user_uuid;
+
+-- name: GetAllStatusesCount :one
+SELECT COUNT(*)
+FROM statuses;
+
 -- name: GetAllStatuses :many
 SELECT
     uuid,
-    label,
-    created_date
+    label
 FROM
     statuses
 ORDER BY

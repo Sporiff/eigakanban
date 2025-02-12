@@ -8,6 +8,7 @@ CREATE TABLE users (
                        email TEXT NOT NULL UNIQUE,
                        full_name TEXT,
                        bio TEXT,
+                       superuser BOOLEAN NOT NULL DEFAULT FALSE,
                        created_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -63,6 +64,17 @@ CREATE TABLE list_items (
                             UNIQUE (list_id, item_id)
 );
 
+CREATE TABLE list_statuses (
+                           list_status_id BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
+                           uuid UUID DEFAULT gen_random_uuid() UNIQUE,
+                           list_id BIGINT NOT NULL,
+                           status_id BIGINT NOT NULL,
+                           created_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                           FOREIGN KEY (list_id) REFERENCES lists (list_id) ON DELETE CASCADE,
+                           FOREIGN KEY (status_id) REFERENCES statuses (status_id) ON DELETE CASCADE,
+                           UNIQUE (list_id, status_id)
+);
+
 CREATE TABLE reviews (
                          review_id BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
                          uuid UUID DEFAULT gen_random_uuid () UNIQUE,
@@ -83,6 +95,8 @@ CREATE INDEX idx_users_created_date ON users (created_date);
 CREATE INDEX idx_users_username ON users (username);
 
 CREATE INDEX idx_users_email ON users (email);
+
+CREATE INDEX idx_users_superuser ON users(uuid, superuser);
 
 -- Review indexes
 CREATE INDEX idx_reviews_uuid ON reviews (uuid);
@@ -123,6 +137,14 @@ CREATE INDEX idx_statuses_created_date ON statuses (created_date);
 
 CREATE INDEX idx_statuses_user_id_created_date ON statuses (user_id, created_date);
 
+-- List Status indexes
+
+CREATE INDEX idx_list_statuses_uuid ON list_statuses (uuid);
+
+CREATE INDEX idx_list_statuses_list_id ON list_statuses (list_id);
+
+CREATE INDEX idx_list_statuses_status_id ON list_statuses (status_id);
+
 -- Refresh token indexes
 
 CREATE INDEX idx_refresh_token_user_id ON refresh_tokens (user_id);
@@ -145,6 +167,8 @@ DROP INDEX idx_users_username;
 
 DROP INDEX idx_users_email;
 
+DROP INDEX idx_users_superuser;
+
 DROP INDEX idx_reviews_uuid;
 
 DROP INDEX idx_reviews_user_id;
@@ -165,6 +189,12 @@ DROP INDEX idx_statuses_created_date;
 
 DROP INDEX idx_statuses_user_id_created_date;
 
+DROP INDEX idx_list_statuses_uuid;
+
+DROP INDEX idx_list_statuses_list_id;
+
+DROP INDEX idx_list_statuses_status_id;
+
 DROP INDEX idx_lists_uuid;
 
 DROP INDEX idx_list_items_list_id_position;
@@ -183,6 +213,8 @@ DROP TABLE refresh_tokens;
 DROP TABLE reviews;
 
 DROP TABLE list_items;
+
+DROP TABLE list_statuses;
 
 DROP TABLE items;
 

@@ -19,7 +19,7 @@ func NewUsersService(q *queries.Queries) *UsersService {
 // GetAllUsers returns the total number of users and a list of all users
 func (s *UsersService) GetAllUsers(ctx context.Context, pagination *types.Pagination) ([]queries.GetAllUsersRow, *types.Pagination, error) {
 	// Get the total number of users
-	total, err := s.q.GetUserCount(ctx)
+	total, err := s.GetUserCount(ctx)
 	if err != nil {
 		return nil, nil, errors.New("error getting user count: " + err.Error())
 	}

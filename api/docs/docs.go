@@ -502,6 +502,100 @@ const docTemplate = `{
                 }
             }
         },
+        "/statuses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetch all statuses as a paginated list",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "statuses"
+                ],
+                "summary": "Fetch all statuses",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Statuses",
+                        "schema": {
+                            "$ref": "#/definitions/types.PaginatedStatusesResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a new status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "statuses"
+                ],
+                "summary": "Add a new status",
+                "parameters": [
+                    {
+                        "description": "Status details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.AddStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Status added successfully",
+                        "schema": {
+                            "$ref": "#/definitions/types.StatusesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing mandatory fields",
+                        "schema": {
+                            "$ref": "#/definitions/types.MissingFieldResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "security": [
@@ -708,6 +802,19 @@ const docTemplate = `{
                 }
             }
         },
+        "types.AddStatusRequest": {
+            "description": "A request body for adding a new status",
+            "type": "object",
+            "required": [
+                "label"
+            ],
+            "properties": {
+                "label": {
+                    "type": "string",
+                    "example": "test"
+                }
+            }
+        },
         "types.AlreadyLoggedOutResponse": {
             "description": "user already logged out",
             "type": "object",
@@ -851,6 +958,21 @@ const docTemplate = `{
                 }
             }
         },
+        "types.PaginatedStatusesResponse": {
+            "description": "a paginated list of statuses",
+            "type": "object",
+            "properties": {
+                "pagination": {
+                    "$ref": "#/definitions/types.Pagination"
+                },
+                "statuses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.StatusesResponse"
+                    }
+                }
+            }
+        },
         "types.PaginatedUsersResponse": {
             "description": "a response containing a list of users and a pagination object",
             "type": "object",
@@ -914,6 +1036,20 @@ const docTemplate = `{
                 "username": {
                     "type": "string",
                     "example": "test"
+                }
+            }
+        },
+        "types.StatusesResponse": {
+            "description": "status details",
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string",
+                    "example": "backlog"
+                },
+                "uuid": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
                 }
             }
         },

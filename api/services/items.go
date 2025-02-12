@@ -19,7 +19,7 @@ func NewItemsService(q *queries.Queries) *ItemsService {
 // GetAllItems retrieves all items from the database as a paginated list
 func (s *ItemsService) GetAllItems(ctx context.Context, pagination *types.Pagination) ([]queries.GetAllItemsRow, *types.Pagination, error) {
 	// Get the total number of items
-	total, err := s.q.GetItemsCount(ctx)
+	total, err := s.GetItemsCount(ctx)
 	if err != nil {
 		return nil, pagination, errors.New("could not get item count: " + err.Error())
 	}
