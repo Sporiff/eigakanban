@@ -25,6 +25,10 @@ swag-fmt:
 swag-init:
 	$(SWAG) init
 
+# Populate the database with dummy values
+go-populate:
+	$(GO) run scripts/insert_dummy_data.go
+
 # Run the server
 go-run:
 	$(GO) run main.go
