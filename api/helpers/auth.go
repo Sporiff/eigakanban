@@ -28,6 +28,7 @@ func GenerateAccessToken(user queries.GetExistingUserRow) (string, error) {
 	// Generate a JWT token
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_uuid": user.Uuid.String(),
+		"superuser": user.Superuser,
 		"exp":       time.Now().Add(time.Hour * 1).Unix(),
 	})
 

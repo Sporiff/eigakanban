@@ -26,54 +26,77 @@ func SetupRoutes(router *gin.Engine, db *pgxpool.Pool) {
 	listItemsHandler := handlers.NewListItemsHandler(listItemsService)
 
 	authMiddlewareHandler := middleware.NewAuthMiddlewareHandler(db)
+	superUserMiddlewareHandler := middleware.NewSuperUserMiddlewareHandler(db)
 
 	v1 := router.Group("/api/v1")
 	{
-		users := v1.Group("/users")
-		users.Use(authMiddlewareHandler.AuthRequired())
-		{
-			// User routes
-			users.GET("/", usersHandler.GetAllUsers)
-			users.GET("/:uuid", usersHandler.GetUserByUuid)
-			users.PATCH("/:uuid", usersHandler.UpdateUser)
-			users.DELETE("/:uuid", usersHandler.DeleteUser)
-		}
-		items := v1.Group("/items")
-		items.Use(authMiddlewareHandler.AuthRequired())
-		{
-			// Items routes
-			items.GET("/", itemsHandler.GetAllItems)
-			items.GET("/:uuid", itemsHandler.GetItemByUuid)
-			items.POST("/", itemsHandler.AddItem)
-			items.PATCH("/:uuid", itemsHandler.UpdateItem)
-		}
-		lists := v1.Group("/lists")
-		lists.Use(authMiddlewareHandler.AuthRequired())
-		{
-			// Lists handlers
-			lists.GET("/:uuid", listItemsHandler.GetListItemsForList)
-		}
-		listItems := v1.Group("/list_items")
-		listItems.Use(authMiddlewareHandler.AuthRequired())
-		{
-			// List items handlers
-			listItems.GET("/", listItemsHandler.GetAllListItems)
-		}
-		statuses := v1.Group("/statuses")
-		statuses.Use(authMiddlewareHandler.AuthRequired())
-		{
-			// Statuses handlers
-			statuses.POST("/", statusesHandler.AddStatus)
-			statuses.GET("/", statusesHandler.GetStatusesForUser)
-		}
+		// Unauthenticated routes
 		auth := v1.Group("/auth")
 		{
-			// Auth routes
 			auth.POST("/register", authHandler.RegisterUser)
 			auth.POST("/login", authHandler.LoginUser)
 			auth.POST("/logout", authHandler.LogoutUser)
 		}
+
+		items := v1.Group("/items")
+		{
+			items.GET("/", itemsHandler.GetAllItems)
+			items.GET("/:uuid", itemsHandler.GetItemByUuid)
+		}
+
+		lists := v1.Group("/lists")
+		{
+			lists.GET("/:uuid", listItemsHandler.GetListItemsForList)
+		}
+
+		listItems := v1.Group("/lists/:uuid")
+		{
+			listItems.GET("/", listItemsHandler.GetAllListItems)
+		}
+
+		// Authenticated routes
+		users := v1.Group("/users/:uuid")
+		users.Use(authMiddlewareHandler.AuthRequired())
+		{
+			users.GET("/", usersHandler.GetUserByUuid)
+			users.PATCH("/", usersHandler.UpdateUser)
+			users.DELETE("/", usersHandler.DeleteUser)
+		}
+
+		authItems := v1.Group("/items")
+		authItems.Use(authMiddlewareHandler.AuthRequired())
+		{
+			authItems.POST("/", itemsHandler.AddItem)
+			authItems.PATCH("/:uuid", itemsHandler.UpdateItem)
+		}
+
+		//authLists := v1.Group("/lists")
+		//authLists.Use(authMiddlewareHandler.AuthRequired())
+		//{
+		//	authLists.POST("/", listHandler.AddList)
+		//}
+
+		//authListItems := v1.Group("/lists/:uuid")
+		//authListItems.Use(authMiddlewareHandler.AuthRequired())
+		//{
+		//	authListItems.POST("/", listItemsHandler.AddItemToList)
+		//}
+
+		statuses := v1.Group("/statuses")
+		statuses.Use(authMiddlewareHandler.AuthRequired())
+		{
+			statuses.POST("/", statusesHandler.AddStatus)
+			statuses.GET("/", statusesHandler.GetStatusesForUser)
+		}
+
+		// Admin routes
 		admin := v1.Group("/admin")
 		admin.Use(authMiddlewareHandler.AuthRequired())
+		admin.Use(superUserMiddlewareHandler.SuperUserStatusRequired())
+		// TODO add middleware to check superuser status
+		{
+			admin.GET("/users", usersHandler.GetAllUsers)
+			admin.DELETE("/users/:uuid", usersHandler.DeleteUser)
+		}
 	}
 }

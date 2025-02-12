@@ -46,7 +46,8 @@ SELECT
     uuid,
     username,
     email,
-    hashed_password
+    hashed_password,
+    superuser
 FROM
     users
 WHERE

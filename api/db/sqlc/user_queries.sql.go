@@ -150,7 +150,8 @@ SELECT
     uuid,
     username,
     email,
-    hashed_password
+    hashed_password,
+    superuser
 FROM
     users
 WHERE
@@ -172,6 +173,7 @@ type GetExistingUserRow struct {
 	Username       string      `json:"username"`
 	Email          string      `json:"email"`
 	HashedPassword string      `json:"hashed_password"`
+	Superuser      bool        `json:"superuser"`
 }
 
 func (q *Queries) GetExistingUser(ctx context.Context, arg GetExistingUserParams) (GetExistingUserRow, error) {
@@ -183,6 +185,7 @@ func (q *Queries) GetExistingUser(ctx context.Context, arg GetExistingUserParams
 		&i.Username,
 		&i.Email,
 		&i.HashedPassword,
+		&i.Superuser,
 	)
 	return i, err
 }

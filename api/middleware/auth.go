@@ -27,24 +27,7 @@ func NewAuthMiddlewareHandler(db *pgxpool.Pool) *AuthMiddlewareHandler {
 func (h *AuthMiddlewareHandler) AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Extract the access token from the Authorization header
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header missing"})
-			return
-		}
-
-		// Extract the token from the Bearer string
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		if tokenString == authHeader {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token format"})
-			return
-		}
-
-		// Parse and validate the access token
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return []byte("your-secret-key"), nil // TODO: Look into using the .env file for this
-		})
-
+		token, err := h.extractAuthToken(c)
 		if err != nil {
 			if errors.Is(err, jwt.ErrSignatureInvalid) {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token signature"})
@@ -79,7 +62,14 @@ func (h *AuthMiddlewareHandler) AuthRequired() gin.HandlerFunc {
 				return
 			}
 
+			superUser, ok := claims["superuser"]
+			if !ok {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+				return
+			}
+
 			c.Set("user_uuid", userUuid)
+			c.Set("superuser", superUser)
 		}
 
 		// The token is valid
@@ -137,4 +127,28 @@ func (h *AuthMiddlewareHandler) handleExpiredToken(c *gin.Context) {
 	// Set user UUID in context
 	c.Set("user_uuid", fetchedUser.Uuid)
 	c.Next()
+}
+
+func (h *AuthMiddlewareHandler) extractAuthToken(c *gin.Context) (*jwt.Token, error) {
+	// Extract the access token from the Authorization header
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		return nil, errors.New("Authorization header missing")
+	}
+
+	// Extract the token from the Bearer string
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	if tokenString == authHeader {
+		return nil, errors.New("Invalid token format")
+	}
+
+	// Parse and validate the access token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte("your-secret-key"), nil // TODO: Look into using the .env file for this
+	})
+	if err != nil {
+		return nil, errors.New("Invalid token")
+	}
+
+	return token, nil
 }
