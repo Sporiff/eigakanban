@@ -1,18 +1,29 @@
 package routes
 
 import (
+	queries "codeberg.org/sporiff/eigakanban/db/sqlc"
 	"codeberg.org/sporiff/eigakanban/handlers"
 	"codeberg.org/sporiff/eigakanban/middleware"
+	"codeberg.org/sporiff/eigakanban/services"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // SetupRoutes initializes all the routes for the application.
 func SetupRoutes(router *gin.Engine, db *pgxpool.Pool) {
-	userHandler := handlers.NewUserHandler(db)
-	authHandler := handlers.NewAuthHandler(db)
-	boardsHandler := handlers.NewBoardsHandler(db)
-	itemsHandler := handlers.NewItemsHandler(db)
+	q := queries.New(db)
+
+	authService := services.NewAuthService(q)
+	usersService := services.NewUsersService(q)
+	statusesService := services.NewStatusesService(q)
+	itemsService := services.NewItemsService(q)
+	listItemsService := services.NewListItemsService(q)
+
+	authHandler := handlers.NewAuthHandler(authService)
+	usersHandler := handlers.NewUsersHandler(usersService)
+	statusesHandler := handlers.NewStatusesHandler(statusesService)
+	itemsHandler := handlers.NewItemsHandler(itemsService)
+	listItemsHandler := handlers.NewListItemsHandler(listItemsService)
 
 	authMiddlewareHandler := middleware.NewAuthMiddlewareHandler(db)
 
@@ -22,21 +33,10 @@ func SetupRoutes(router *gin.Engine, db *pgxpool.Pool) {
 		users.Use(authMiddlewareHandler.AuthRequired())
 		{
 			// User routes
-			users.GET("/", userHandler.GetAllUsers)
-			users.GET("/:uuid", userHandler.GetUserByUuid)
-			users.PATCH("/:uuid", userHandler.UpdateUser)
-			users.DELETE("/:uuid", userHandler.DeleteUser)
-			users.GET("/:uuid/boards", boardsHandler.GetBoardsForUser)
-		}
-		boards := v1.Group("/boards")
-		boards.Use(authMiddlewareHandler.AuthRequired())
-		{
-			// Board routes
-			boards.GET("/", boardsHandler.GetAllBoards)
-			boards.GET("/:uuid", boardsHandler.GetBoardByUuid)
-			boards.POST("/", boardsHandler.AddBoard)
-			boards.PATCH("/:uuid", boardsHandler.UpdateBoard)
-			boards.DELETE("/:uuid", boardsHandler.DeleteBoard)
+			users.GET("/", usersHandler.GetAllUsers)
+			users.GET("/:uuid", usersHandler.GetUserByUuid)
+			users.PATCH("/:uuid", usersHandler.UpdateUser)
+			users.DELETE("/:uuid", usersHandler.DeleteUser)
 		}
 		items := v1.Group("/items")
 		items.Use(authMiddlewareHandler.AuthRequired())
@@ -46,6 +46,24 @@ func SetupRoutes(router *gin.Engine, db *pgxpool.Pool) {
 			items.GET("/:uuid", itemsHandler.GetItemByUuid)
 			items.POST("/", itemsHandler.AddItem)
 			items.PATCH("/:uuid", itemsHandler.UpdateItem)
+		}
+		lists := v1.Group("/lists")
+		lists.Use(authMiddlewareHandler.AuthRequired())
+		{
+			// Lists handlers
+			lists.GET("/:uuid", listItemsHandler.GetListItemsForList)
+		}
+		listItems := v1.Group("/list_items")
+		listItems.Use(authMiddlewareHandler.AuthRequired())
+		{
+			// List items handlers
+			listItems.GET("/", listItemsHandler.GetAllListItems)
+		}
+		statuses := v1.Group("/statuses")
+		statuses.Use(authMiddlewareHandler.AuthRequired())
+		{
+			// Statuses handlers
+			statuses.POST("/", statusesHandler.AddStatus)
 		}
 		auth := v1.Group("/auth")
 		{

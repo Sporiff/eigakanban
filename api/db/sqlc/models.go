@@ -8,15 +8,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Board struct {
-	BoardID     pgtype.Int8        `json:"board_id"`
-	Uuid        pgtype.UUID        `json:"uuid"`
-	Name        string             `json:"name"`
-	Description pgtype.Text        `json:"description"`
-	UserID      pgtype.Int8        `json:"user_id"`
-	CreatedDate pgtype.Timestamptz `json:"created_date"`
-}
-
 type Item struct {
 	ItemID      pgtype.Int8        `json:"item_id"`
 	Uuid        pgtype.UUID        `json:"uuid"`
@@ -28,7 +19,6 @@ type List struct {
 	ListID      pgtype.Int8        `json:"list_id"`
 	Uuid        pgtype.UUID        `json:"uuid"`
 	Name        string             `json:"name"`
-	BoardID     pgtype.Int8        `json:"board_id"`
 	UserID      int64              `json:"user_id"`
 	CreatedDate pgtype.Timestamptz `json:"created_date"`
 }

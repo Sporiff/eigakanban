@@ -43,7 +43,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.LoginUser.LoginUserRequest"
+                            "$ref": "#/definitions/types.LoginUserRequest"
                         }
                     }
                 ],
@@ -51,19 +51,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Successful login",
                         "schema": {
-                            "$ref": "#/definitions/handlers.LoginUser.TokenResponse"
+                            "$ref": "#/definitions/types.TokenResponse"
                         }
                     },
                     "400": {
                         "description": "Missing mandatory fields",
                         "schema": {
-                            "$ref": "#/definitions/handlers.MissingFieldResponse"
+                            "$ref": "#/definitions/types.MissingFieldResponse"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/handlers.LoginUser.NoUserFoundResponse"
+                            "$ref": "#/definitions/types.UserNotFoundResponse"
                         }
                     },
                     "500": {
@@ -92,13 +92,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Logout successful",
                         "schema": {
-                            "$ref": "#/definitions/handlers.LogoutUser.LogoutSuccessResponse"
+                            "$ref": "#/definitions/types.LogoutSuccessResponse"
                         }
                     },
                     "400": {
                         "description": "Missing refresh token",
                         "schema": {
-                            "$ref": "#/definitions/handlers.LogoutUser.RefreshTokenMissingResponse"
+                            "$ref": "#/definitions/types.RefreshTokenMissingResponse"
                         }
                     },
                     "500": {
@@ -130,7 +130,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.RegisterUser.RegisterUserRequest"
+                            "$ref": "#/definitions/types.RegisterUserRequest"
                         }
                     }
                 ],
@@ -138,256 +138,13 @@ const docTemplate = `{
                     "200": {
                         "description": "User registered successfully",
                         "schema": {
-                            "$ref": "#/definitions/handlers.UserResponse"
+                            "$ref": "#/definitions/types.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Missing mandatory fields",
                         "schema": {
-                            "$ref": "#/definitions/handlers.MissingFieldResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/types.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/boards": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all boards in a paginated list",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "boards"
-                ],
-                "summary": "Get all boards",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Page",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page size",
-                        "name": "page_size",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.GetAllBoards.PaginatedBoardsResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/types.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Add a new board for a user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "boards"
-                ],
-                "summary": "Add a new board",
-                "parameters": [
-                    {
-                        "description": "Board details",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.AddBoard.AddBoardRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Board added successfully",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.BoardsResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Missing mandatory fields",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.MissingFieldResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/types.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/boards/{uuid}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get a board by UUID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "boards"
-                ],
-                "summary": "Get board by UUID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Board UUID",
-                        "name": "uuid",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.BoardsResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/types.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/types.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete a board by UUID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "boards"
-                ],
-                "summary": "Delete board",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Board UUID",
-                        "name": "uuid",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Board deleted successfully",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.DeleteBoard.BoardDeletedResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/types.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update board details by UUID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "boards"
-                ],
-                "summary": "Update board details",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Board UUID",
-                        "name": "uuid",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Board details to update",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.UpdateBoard.UpdateBoardRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.BoardsResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/types.ErrorResponse"
+                            "$ref": "#/definitions/types.MissingFieldResponse"
                         }
                     },
                     "500": {
@@ -435,7 +192,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.GetAllItems.PaginatedItemsResponse"
+                            "$ref": "#/definitions/types.PaginatedItemsResponse"
                         }
                     },
                     "500": {
@@ -470,7 +227,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.AddItem.AddItemRequest"
+                            "$ref": "#/definitions/types.AddItemRequest"
                         }
                     }
                 ],
@@ -478,13 +235,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Item added successfully",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ItemsResponse"
+                            "$ref": "#/definitions/types.ItemsResponse"
                         }
                     },
                     "400": {
                         "description": "Missing mandatory fields",
                         "schema": {
-                            "$ref": "#/definitions/handlers.MissingFieldResponse"
+                            "$ref": "#/definitions/types.MissingFieldResponse"
                         }
                     },
                     "500": {
@@ -527,7 +284,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ItemsResponse"
+                            "$ref": "#/definitions/types.ItemsResponse"
                         }
                     },
                     "400": {
@@ -574,7 +331,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Board deleted successfully",
                         "schema": {
-                            "$ref": "#/definitions/handlers.DeleteItem.ItemDeletedResponse"
+                            "$ref": "#/definitions/types.ItemDeletedResponse"
                         }
                     },
                     "500": {
@@ -616,7 +373,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.UpdateItem.UpdateItemRequest"
+                            "$ref": "#/definitions/types.UpdateItemRequest"
                         }
                     }
                 ],
@@ -624,7 +381,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ItemsResponse"
+                            "$ref": "#/definitions/types.ItemsResponse"
                         }
                     },
                     "400": {
@@ -642,14 +399,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/user/{uuid}/boards": {
+        "/list_items": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all boards for a user in a paginated list",
+                "description": "Get all list items in a paginated list",
                 "consumes": [
                     "application/json"
                 ],
@@ -657,13 +414,61 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "boards"
+                    "list_items"
                 ],
-                "summary": "Get all boards for a user",
+                "summary": "Get all list items",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/types.PaginatedListItemsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/types.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/lists/{uuid}/items": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all items in a list as a paginated list",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lists"
+                ],
+                "summary": "Get all items in a list",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User UUID",
+                        "description": "List UUID",
                         "name": "uuid",
                         "in": "path",
                         "required": true
@@ -685,7 +490,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.GetAllBoards.PaginatedBoardsResponse"
+                            "$ref": "#/definitions/types.PaginatedListItemsResponse"
                         }
                     },
                     "500": {
@@ -733,7 +538,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.GetAllUsers.PaginatedUsersResponse"
+                            "$ref": "#/definitions/types.PaginatedUsersResponse"
                         }
                     },
                     "500": {
@@ -776,7 +581,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.UserResponse"
+                            "$ref": "#/definitions/types.UserResponse"
                         }
                     },
                     "400": {
@@ -823,7 +628,7 @@ const docTemplate = `{
                     "200": {
                         "description": "User deleted successfully",
                         "schema": {
-                            "$ref": "#/definitions/handlers.DeleteUser.UserDeletedResponse"
+                            "$ref": "#/definitions/types.UserDeletedResponse"
                         }
                     },
                     "500": {
@@ -865,7 +670,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.UpdateUser.UpdateUserRequest"
+                            "$ref": "#/definitions/types.UpdateUserRequest"
                         }
                     }
                 ],
@@ -873,7 +678,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.UserResponse"
+                            "$ref": "#/definitions/types.UserResponse"
                         }
                     },
                     "400": {
@@ -893,28 +698,8 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handlers.AddBoard.AddBoardRequest": {
-            "type": "object",
-            "required": [
-                "name",
-                "user_uuid"
-            ],
-            "properties": {
-                "description": {
-                    "type": "string",
-                    "example": "A short description"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "My Queue"
-                },
-                "user_uuid": {
-                    "type": "string",
-                    "example": "00ca71c5-7c8a-4470-ab47-f962d33c1303"
-                }
-            }
-        },
-        "handlers.AddItem.AddItemRequest": {
+        "types.AddItemRequest": {
+            "description": "a request body for adding a new item",
             "type": "object",
             "properties": {
                 "title": {
@@ -923,33 +708,28 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.BoardsResponse": {
+        "types.AlreadyLoggedOutResponse": {
+            "description": "user already logged out",
             "type": "object",
             "properties": {
-                "description": {
+                "error": {
                     "type": "string",
-                    "example": "A short description"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "My queue"
-                },
-                "uuid": {
-                    "type": "string",
-                    "example": "00000000-0000-0000-0000-000000000000"
+                    "example": "already logged out"
                 }
             }
         },
-        "handlers.DeleteBoard.BoardDeletedResponse": {
+        "types.ErrorResponse": {
+            "description": "an unknown error",
             "type": "object",
             "properties": {
-                "success": {
+                "error": {
                     "type": "string",
-                    "example": "Board deleted: 77b62cff-0020-43d9-a90c-5d35bff89f7a"
+                    "example": "internal server error"
                 }
             }
         },
-        "handlers.DeleteItem.ItemDeletedResponse": {
+        "types.ItemDeletedResponse": {
+            "description": "A success message confirming the item was deleted",
             "type": "object",
             "properties": {
                 "success": {
@@ -958,58 +738,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.DeleteUser.UserDeletedResponse": {
-            "type": "object",
-            "properties": {
-                "success": {
-                    "type": "string",
-                    "example": "user deleted: 77b62cff-0020-43d9-a90c-5d35bff89f7a"
-                }
-            }
-        },
-        "handlers.GetAllBoards.PaginatedBoardsResponse": {
-            "type": "object",
-            "properties": {
-                "boards": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/handlers.BoardsResponse"
-                    }
-                },
-                "pagination": {
-                    "$ref": "#/definitions/types.Pagination"
-                }
-            }
-        },
-        "handlers.GetAllItems.PaginatedItemsResponse": {
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/handlers.ItemsResponse"
-                    }
-                },
-                "pagination": {
-                    "$ref": "#/definitions/types.Pagination"
-                }
-            }
-        },
-        "handlers.GetAllUsers.PaginatedUsersResponse": {
-            "type": "object",
-            "properties": {
-                "pagination": {
-                    "$ref": "#/definitions/types.Pagination"
-                },
-                "users": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/handlers.UserResponse"
-                    }
-                }
-            }
-        },
-        "handlers.ItemsResponse": {
+        "types.ItemsResponse": {
             "type": "object",
             "properties": {
                 "title": {
@@ -1022,7 +751,33 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.LoginUser.LoginUserRequest": {
+        "types.ListItemsResponse": {
+            "type": "object",
+            "properties": {
+                "item_uuid": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000002"
+                },
+                "list_uuid": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000001"
+                },
+                "position": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "status": {
+                    "type": "string",
+                    "example": "Backlog"
+                },
+                "uuid": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                }
+            }
+        },
+        "types.LoginUserRequest": {
+            "description": "request body for a login request. either email or username must be provided",
             "type": "object",
             "required": [
                 "password"
@@ -1042,53 +797,18 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.LoginUser.NoUserFoundResponse": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string",
-                    "example": "User not found"
-                }
-            }
-        },
-        "handlers.LoginUser.TokenResponse": {
-            "type": "object",
-            "properties": {
-                "token": {
-                    "type": "string",
-                    "example": "jwt-token-string"
-                }
-            }
-        },
-        "handlers.LogoutUser.AlreadyLoggedOutResponse": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string",
-                    "example": "Already logged out"
-                }
-            }
-        },
-        "handlers.LogoutUser.LogoutSuccessResponse": {
+        "types.LogoutSuccessResponse": {
+            "description": "user logged out successfully",
             "type": "object",
             "properties": {
                 "message": {
                     "type": "string",
-                    "example": "Logged out successfully"
+                    "example": "logged out successfully"
                 }
             }
         },
-        "handlers.LogoutUser.RefreshTokenMissingResponse": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string",
-                    "example": "Refresh token is required"
-                }
-            }
-        },
-        "handlers.MissingFieldResponse": {
-            "description": "an example of a missing field respo an example of a missing field response",
+        "types.MissingFieldResponse": {
+            "description": "an example of a missing field response an example of a missing field response",
             "type": "object",
             "properties": {
                 "error": {
@@ -1102,7 +822,80 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.RegisterUser.RegisterUserRequest": {
+        "types.PaginatedItemsResponse": {
+            "description": "a response containing a list of items and a pagination object",
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.ItemsResponse"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/types.Pagination"
+                }
+            }
+        },
+        "types.PaginatedListItemsResponse": {
+            "type": "object",
+            "properties": {
+                "list_items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.ListItemsResponse"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/types.Pagination"
+                }
+            }
+        },
+        "types.PaginatedUsersResponse": {
+            "description": "a response containing a list of users and a pagination object",
+            "type": "object",
+            "properties": {
+                "pagination": {
+                    "$ref": "#/definitions/types.Pagination"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.UserResponse"
+                    }
+                }
+            }
+        },
+        "types.Pagination": {
+            "description": "pagination information",
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "page_size": {
+                    "type": "integer",
+                    "example": 50
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 2
+                }
+            }
+        },
+        "types.RefreshTokenMissingResponse": {
+            "description": "refresh token missing",
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "refresh token missing"
+                }
+            }
+        },
+        "types.RegisterUserRequest": {
+            "description": "A request body for registering a new user",
             "type": "object",
             "required": [
                 "email",
@@ -1124,20 +917,22 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.UpdateBoard.UpdateBoardRequest": {
+        "types.TokenResponse": {
+            "description": "a response containing a JWT for authentication and a refresh token",
             "type": "object",
             "properties": {
-                "description": {
+                "access_token": {
                     "type": "string",
-                    "example": "A short description"
+                    "example": "00000000-0000-0000-0000-000000000000"
                 },
-                "name": {
+                "refresh_token": {
                     "type": "string",
-                    "example": "My Board"
+                    "example": "00000000-0000-0000-0000-000000000000"
                 }
             }
         },
-        "handlers.UpdateItem.UpdateItemRequest": {
+        "types.UpdateItemRequest": {
+            "description": "a request body for updating an item",
             "type": "object",
             "properties": {
                 "title": {
@@ -1146,7 +941,8 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.UpdateUser.UpdateUserRequest": {
+        "types.UpdateUserRequest": {
+            "description": "a request body for updating a user",
             "type": "object",
             "properties": {
                 "bio": {
@@ -1163,7 +959,27 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.UserResponse": {
+        "types.UserDeletedResponse": {
+            "description": "A success message confirming the user was deleted",
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "string",
+                    "example": "user deleted: 77b62cff-0020-43d9-a90c-5d35bff89f7a"
+                }
+            }
+        },
+        "types.UserNotFoundResponse": {
+            "description": "User not found",
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "user not found"
+                }
+            }
+        },
+        "types.UserResponse": {
             "description": "JSON representation of a user in the system",
             "type": "object",
             "properties": {
@@ -1182,34 +998,6 @@ const docTemplate = `{
                 "uuid": {
                     "type": "string",
                     "example": "77b62cff-0020-43d9-a90c-5d35bff89f7a"
-                }
-            }
-        },
-        "types.ErrorResponse": {
-            "description": "an unknown error",
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string",
-                    "example": "internal server error"
-                }
-            }
-        },
-        "types.Pagination": {
-            "description": "pagination information",
-            "type": "object",
-            "properties": {
-                "page": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "page_size": {
-                    "type": "integer",
-                    "example": 50
-                },
-                "total": {
-                    "type": "integer",
-                    "example": 2
                 }
             }
         }
