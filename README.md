@@ -11,7 +11,7 @@ eigakanban is written using:
 - [Go](https://go.dev/)
 - [sqlc](https://sqlc.dev/)
 - [gin](https://gin-gonic.com/)
-- [Svelte](https://svelte.dev/)
+- [Vue.js](https://vuejs.org/)
 
 ## Contact
 
