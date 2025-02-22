@@ -4,6 +4,7 @@ import (
 	"codeberg.org/sporiff/eigakanban/config"
 	_ "codeberg.org/sporiff/eigakanban/docs"
 	"codeberg.org/sporiff/eigakanban/routes"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -40,7 +41,8 @@ func main() {
 	defer db.Close()
 
 	router := gin.Default()
-	routes.SetupRoutes(router, db)
+	router.Use(cors.Default())
+	routes.SetupRoutes(router, db, tmdbClient)
 
 	router.GET("/docs", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")
