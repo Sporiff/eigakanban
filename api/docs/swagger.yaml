@@ -190,6 +190,9 @@ definitions:
       access_token:
         example: 00000000-0000-0000-0000-000000000000
         type: string
+      expiry_date:
+        example: 2025-02-15 11:59:01.837871 +0100 CET m=+3603.614509085
+        type: string
       refresh_token:
         example: 00000000-0000-0000-0000-000000000000
         type: string
@@ -298,6 +301,41 @@ paths:
       consumes:
       - application/json
       description: Log out of the app
+      parameters:
+      - description: Refresh token
+        in: header
+        name: Refresh-Token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            $ref: '#/definitions/types.LogoutSuccessResponse'
+        "400":
+          description: Missing refresh token
+          schema:
+            $ref: '#/definitions/types.RefreshTokenMissingResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      summary: Log out
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Log out of the app
+      parameters:
+      - description: Refresh token
+        in: header
+        name: Refresh-Token
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -565,6 +603,46 @@ paths:
       summary: Get all items in a list
       tags:
       - lists
+  /search:
+    get:
+      consumes:
+      - application/json
+      description: Search for movies on TMDB
+      parameters:
+      - description: List UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      - description: Search query
+        in: query
+        name: q
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.PaginatedListItemsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/types.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Search for movies on TMDB
+      tags:
+      - search
   /statuses:
     get:
       consumes:
