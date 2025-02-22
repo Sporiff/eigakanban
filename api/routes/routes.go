@@ -5,6 +5,7 @@ import (
 	"codeberg.org/sporiff/eigakanban/handlers"
 	"codeberg.org/sporiff/eigakanban/middleware"
 	"codeberg.org/sporiff/eigakanban/services"
+	tmdb "github.com/cyruzin/golang-tmdb"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -18,12 +19,14 @@ func SetupRoutes(router *gin.Engine, db *pgxpool.Pool) {
 	statusesService := services.NewStatusesService(q)
 	itemsService := services.NewItemsService(q)
 	listItemsService := services.NewListItemsService(q)
+	searchService := services.NewSearchService(q, tmdbClient)
 
 	authHandler := handlers.NewAuthHandler(authService)
 	usersHandler := handlers.NewUsersHandler(usersService)
 	statusesHandler := handlers.NewStatusesHandler(statusesService)
 	itemsHandler := handlers.NewItemsHandler(itemsService)
 	listItemsHandler := handlers.NewListItemsHandler(listItemsService)
+	searchHandler := handlers.NewSearchHandler(searchService)
 
 	authMiddlewareHandler := middleware.NewAuthMiddlewareHandler(db)
 	superUserMiddlewareHandler := middleware.NewSuperUserMiddlewareHandler(db)
@@ -68,6 +71,12 @@ func SetupRoutes(router *gin.Engine, db *pgxpool.Pool) {
 		{
 			authItems.POST("/", itemsHandler.AddItem)
 			authItems.PATCH("/:uuid", itemsHandler.UpdateItem)
+		}
+
+		search := v1.Group("/search")
+		search.Use(authMiddlewareHandler.AuthRequired())
+		{
+			search.GET("/", searchHandler.SearchMovie)
 		}
 
 		//authLists := v1.Group("/lists")

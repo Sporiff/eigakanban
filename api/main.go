@@ -40,6 +40,11 @@ func main() {
 	}
 	defer db.Close()
 
+	tmdbClient, err := config.LoadTmdbConfig()
+	if err != nil {
+		log.Fatalf("Couldn't set up TMDB client: %v", err)
+	}
+
 	router := gin.Default()
 	router.Use(cors.Default())
 	routes.SetupRoutes(router, db, tmdbClient)
