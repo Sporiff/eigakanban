@@ -195,7 +195,8 @@ SELECT
     uuid,
     username,
     full_name,
-    bio
+    bio,
+    superuser
 FROM
     users
 WHERE
@@ -205,10 +206,11 @@ LIMIT
 `
 
 type GetUserByIdRow struct {
-	Uuid     pgtype.UUID `json:"uuid"`
-	Username string      `json:"username"`
-	FullName pgtype.Text `json:"full_name"`
-	Bio      pgtype.Text `json:"bio"`
+	Uuid      pgtype.UUID `json:"uuid"`
+	Username  string      `json:"username"`
+	FullName  pgtype.Text `json:"full_name"`
+	Bio       pgtype.Text `json:"bio"`
+	Superuser bool        `json:"superuser"`
 }
 
 func (q *Queries) GetUserById(ctx context.Context, userID pgtype.Int8) (GetUserByIdRow, error) {
@@ -219,6 +221,7 @@ func (q *Queries) GetUserById(ctx context.Context, userID pgtype.Int8) (GetUserB
 		&i.Username,
 		&i.FullName,
 		&i.Bio,
+		&i.Superuser,
 	)
 	return i, err
 }
@@ -228,7 +231,8 @@ SELECT
     uuid,
     username,
     full_name,
-    bio
+    bio,
+    superuser
 FROM
     users
 WHERE
@@ -238,10 +242,11 @@ LIMIT
 `
 
 type GetUserByUuidRow struct {
-	Uuid     pgtype.UUID `json:"uuid"`
-	Username string      `json:"username"`
-	FullName pgtype.Text `json:"full_name"`
-	Bio      pgtype.Text `json:"bio"`
+	Uuid      pgtype.UUID `json:"uuid"`
+	Username  string      `json:"username"`
+	FullName  pgtype.Text `json:"full_name"`
+	Bio       pgtype.Text `json:"bio"`
+	Superuser bool        `json:"superuser"`
 }
 
 func (q *Queries) GetUserByUuid(ctx context.Context, userUuid pgtype.UUID) (GetUserByUuidRow, error) {
@@ -252,6 +257,7 @@ func (q *Queries) GetUserByUuid(ctx context.Context, userUuid pgtype.UUID) (GetU
 		&i.Username,
 		&i.FullName,
 		&i.Bio,
+		&i.Superuser,
 	)
 	return i, err
 }

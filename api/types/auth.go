@@ -1,16 +1,28 @@
 package types
 
+import "github.com/golang-jwt/jwt/v5"
+
 // AuthenticatedUserResponse represents the data passed back when logging in
 type AuthenticatedUserResponse struct {
 	Uuid         string
 	AccessToken  string
 	RefreshToken string
+	SuperUser    bool
 }
 
-func (r *AuthenticatedUserResponse) Init(uuid, accessToken, refreshToken string) {
+func (r *AuthenticatedUserResponse) Init(uuid, accessToken, refreshToken string, superUser bool) {
 	r.Uuid = uuid
 	r.AccessToken = accessToken
 	r.RefreshToken = refreshToken
+	r.SuperUser = superUser
+}
+
+// TokenClaims represents the claims stored in the JWT token
+type TokenClaims struct {
+	UserUuid  string // The user's UUID
+	SuperUser bool   // Whether the user is a superuser
+	ExpiresAt int64  // The expiry date of the token as a UNIX timestamp
+	jwt.RegisteredClaims
 }
 
 // RegisterUserRequest represents the request body for registering a user
@@ -37,6 +49,7 @@ type LoginUserRequest struct {
 //	@Description	a response containing a JWT for authentication and a refresh token
 type TokenResponse struct {
 	AccessToken  string `json:"access_token" example:"00000000-0000-0000-0000-000000000000"`
+	ExpiryDate   string `json:"expiry_date" example:"2025-02-15 11:59:01.837871 +0100 CET m=+3603.614509085"`
 	RefreshToken string `json:"refresh_token" example:"00000000-0000-0000-0000-000000000000"`
 }
 

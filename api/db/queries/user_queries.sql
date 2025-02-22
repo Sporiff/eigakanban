@@ -19,7 +19,8 @@ SELECT
     uuid,
     username,
     full_name,
-    bio
+    bio,
+    superuser
 FROM
     users
 WHERE
@@ -32,7 +33,8 @@ SELECT
     uuid,
     username,
     full_name,
-    bio
+    bio,
+    superuser
 FROM
     users
 WHERE

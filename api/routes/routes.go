@@ -11,7 +11,7 @@ import (
 )
 
 // SetupRoutes initializes all the routes for the application.
-func SetupRoutes(router *gin.Engine, db *pgxpool.Pool) {
+func SetupRoutes(router *gin.Engine, db *pgxpool.Pool, tmdbClient *tmdb.Client) {
 	q := queries.New(db)
 
 	authService := services.NewAuthService(q)
@@ -58,6 +58,12 @@ func SetupRoutes(router *gin.Engine, db *pgxpool.Pool) {
 		}
 
 		// Authenticated routes
+		loggedInAuth := v1.Group("/auth")
+		loggedInAuth.Use(authMiddlewareHandler.AuthRequired())
+		{
+			loggedInAuth.POST("/refresh", authHandler.RefreshToken)
+		}
+
 		users := v1.Group("/users/:uuid")
 		users.Use(authMiddlewareHandler.AuthRequired())
 		{

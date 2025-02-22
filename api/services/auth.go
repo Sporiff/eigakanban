@@ -5,8 +5,11 @@ import (
 	"codeberg.org/sporiff/eigakanban/helpers"
 	"codeberg.org/sporiff/eigakanban/types"
 	"context"
+	"database/sql"
 	"errors"
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgtype"
+	"log"
 	"time"
 )
 
@@ -21,22 +24,18 @@ func NewAuthService(q *queries.Queries) *AuthService {
 // RegisterUser creates a new user and populates default information
 func (s *AuthService) RegisterUser(ctx context.Context, user types.RegisterUserRequest) (*queries.AddUserRow, error) {
 	// Check for a user with a matching email/username
-	existingUserCount, err := s.q.CheckForUser(ctx, queries.CheckForUserParams{
-		Username: user.Username,
-		Email:    user.Email,
-	})
-	if err != nil {
-		return nil, err
+	existingUser, err := s.checkForUser(ctx, user.Email, user.Username, user.Password)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, errors.New("failed to check for user: " + err.Error())
 	}
 
-	// If the user already exists, return an error
-	if existingUserCount > 0 {
-		return nil, errors.New("user already exists: " + user.Username)
+	if existingUser != (queries.GetExistingUserRow{}) {
+		return nil, errors.New("user already exists:" + existingUser.Username)
 	}
 
 	hashedPassword, err := helpers.HashPassword(user.Password)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("failed to hash password: " + err.Error())
 	}
 
 	// Add the user to the database
@@ -46,7 +45,7 @@ func (s *AuthService) RegisterUser(ctx context.Context, user types.RegisterUserR
 		Email:          user.Email,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.New("failed to add user: " + err.Error())
 	}
 
 	// Create default data for the user
@@ -79,6 +78,7 @@ func (s *AuthService) createDefaultData(ctx context.Context, user queries.AddUse
 		return err
 	}
 
+	// Assign the default status to the default list
 	_, err = s.q.AddListStatus(ctx, queries.AddListStatusParams{
 		ListUuid:   list.Uuid,
 		StatusUuid: status.Uuid,
@@ -91,29 +91,35 @@ func (s *AuthService) createDefaultData(ctx context.Context, user queries.AddUse
 }
 
 // LoginUser logs in the user and sets up authentication
-func (s *AuthService) LoginUser(ctx context.Context, email, username, password string) (types.AuthenticatedUserResponse, error) {
+func (s *AuthService) LoginUser(ctx context.Context, email, username, password string) (types.AuthenticatedUserResponse, string, error) {
 	var userResponse = types.AuthenticatedUserResponse{}
 
 	existingUser, err := s.checkForUser(ctx, email, username, password)
-	if err != nil {
-		return userResponse, err
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Printf("error checking for user: %v", err)
+		return userResponse, "", err
+	}
+
+	if errors.Is(err, sql.ErrNoRows) {
+		log.Printf("user not found: %v", email)
+		return userResponse, "", errors.New("user not found")
 	}
 
 	// Generate an access token
-	accessToken, err := helpers.GenerateAccessToken(existingUser)
+	accessToken, expiryDate, err := helpers.GenerateAccessToken(existingUser)
 	if err != nil {
-		return userResponse, err
+		return userResponse, "", err
 	}
 
 	// Generate a refresh token
 	refreshToken, err := s.generateAndStoreRefreshToken(existingUser, ctx)
 	if err != nil {
-		return userResponse, err
+		return userResponse, "", err
 	}
 
-	userResponse.Init(existingUser.Uuid.String(), accessToken, refreshToken)
+	userResponse.Init(existingUser.Uuid.String(), accessToken, refreshToken, existingUser.Superuser)
 
-	return userResponse, err
+	return userResponse, expiryDate, err
 }
 
 func (s *AuthService) checkForUser(ctx context.Context, email, username, password string) (queries.GetExistingUserRow, error) {
@@ -127,11 +133,6 @@ func (s *AuthService) checkForUser(ctx context.Context, email, username, passwor
 	})
 	if err != nil {
 		return emptyUser, err
-	}
-
-	// Check if the user exists
-	if existingUser == emptyUser {
-		return existingUser, errors.New("user not found")
 	}
 
 	// Verify the password matches the stored password
@@ -190,4 +191,45 @@ func (s *AuthService) LogoutUser(ctx context.Context, refreshToken string) error
 	}
 
 	return nil
+}
+
+// CreateNewAccessToken creates a new auth token for the logged-in user
+func (s *AuthService) CreateNewAccessToken(c *gin.Context, refreshToken string) (string, string, error) {
+	userUuid, err := helpers.ValidateUserUuidFromClaims(c)
+	if err != nil {
+		return "", "", err
+	}
+
+	if userUuid == "" {
+		return "", "", errors.New("missing user uuid")
+	}
+
+	pgUuid, err := helpers.ValidateAndConvertUUID(userUuid)
+	if err != nil {
+		return "", "", err
+	}
+
+	existingUser, err := s.q.GetUserByUuid(c.Request.Context(), pgUuid)
+	if err != nil {
+		return "", "", errors.New("user not found: " + err.Error())
+	}
+
+	existingToken, err := s.q.GetRefreshTokenByToken(c.Request.Context(), refreshToken)
+	if err != nil {
+		return "", "", errors.New("refresh token not found: " + err.Error())
+	}
+
+	if time.Now().After(existingToken.ExpiresAt.Time) {
+		return "", "", errors.New("refresh token expired")
+	}
+
+	accessToken, expiryDate, err := helpers.GenerateAccessToken(existingUser)
+	if err != nil {
+		return "", "", errors.New("error generating access token: " + err.Error())
+	}
+
+	c.Set("user_uuid", userUuid)
+	c.Set("access_token", accessToken)
+
+	return accessToken, expiryDate, nil
 }
