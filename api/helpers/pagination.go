@@ -2,29 +2,29 @@ package helpers
 
 import (
 	"codeberg.org/sporiff/eigakanban/types"
-	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"strconv"
 )
 
-func ValidatePagination(ctx *gin.Context) (types.Pagination, error) {
-	var pagination = types.Pagination{}
-
+func ValidatePagination(ctx *gin.Context) (*types.Pagination, error) {
 	page, err := strconv.ParseInt(ctx.DefaultQuery("page", "1"), 10, 32)
 	if err != nil {
 		errorMessage := fmt.Sprintf("invalid page parameter %d", page)
-		return pagination, errors.New(errorMessage)
+		return nil, types.NewAPIError(http.StatusBadRequest, errorMessage)
 	}
 
 	pageSize, err := strconv.ParseInt(ctx.DefaultQuery("page_size", "50"), 10, 32)
 	if err != nil {
 		errorMessage := fmt.Sprintf("invalid page_size parameter %d", pageSize)
-		return pagination, errors.New(errorMessage)
+		return nil, types.NewAPIError(http.StatusBadRequest, errorMessage)
 	}
 
-	pagination.Page = int32(page - 1)
-	pagination.PageSize = int32(pageSize)
+	result := types.Pagination{
+		Page:     int32(page - 1),
+		PageSize: int32(pageSize),
+	}
 
-	return pagination, nil
+	return &result, nil
 }

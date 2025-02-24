@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"codeberg.org/sporiff/eigakanban/types"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -44,9 +45,11 @@ func HandleValidationError(c *gin.Context, err error) {
 	})
 }
 
-// HandleErrors decorates functions to call HandleValidationError for any errors
-func HandleErrors(c *gin.Context, f func() error) {
-	if err := f(); err != nil {
-		HandleValidationError(c, err)
+func HandleAPIError(c *gin.Context, err error) {
+	var apiErr *types.APIError
+	if errors.As(err, &apiErr) {
+		c.JSON(apiErr.StatusCode, gin.H{"error": apiErr.Message})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "unexpected error occurred"})
 	}
 }

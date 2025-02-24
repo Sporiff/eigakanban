@@ -5,7 +5,7 @@ import (
 	"codeberg.org/sporiff/eigakanban/helpers"
 	"codeberg.org/sporiff/eigakanban/types"
 	"context"
-	"errors"
+	"net/http"
 )
 
 type StatusesService struct {
@@ -17,46 +17,67 @@ func NewStatusesService(q *queries.Queries) *StatusesService {
 }
 
 // AddStatus adds a new status to the database
-func (s *StatusesService) AddStatus(ctx context.Context, status types.AddStatusRequest, uuid string) (queries.AddStatusRow, error) {
-	emptyRow := queries.AddStatusRow{}
+func (s *StatusesService) AddStatus(ctx context.Context, status types.AddStatusRequest, uuid string) (*queries.AddStatusRow, error) {
 	pgUuid, err := helpers.ValidateAndConvertUUID(uuid)
 	if err != nil {
-		return emptyRow, err
+		return nil, err
 	}
 
-	statusRow, err := s.q.AddStatus(ctx, queries.AddStatusParams{
+	result, err := s.q.AddStatus(ctx, queries.AddStatusParams{
 		StatusLabel: helpers.MakePgString(status.StatusLabel),
-		UserUuid:    pgUuid,
+		UserUuid:    *pgUuid,
 	})
 	if err != nil {
-		return emptyRow, errors.New("error adding status: " + err.Error())
+		return nil, types.NewAPIError(http.StatusInternalServerError, "error adding status")
 	}
 
-	return statusRow, err
+	return &result, err
 }
 
 // GetStatusesForUser retrieves all statuses for the authenticated user
-func (s *StatusesService) GetStatusesForUser(ctx context.Context, uuid string, pagination *types.Pagination) ([]queries.GetStatusesForUserRow, *types.Pagination, error) {
+func (s *StatusesService) GetStatusesForUser(ctx context.Context, uuid string, pagination *types.Pagination) (*types.PaginatedStatusesResponse, error) {
 	pgUuid, err := helpers.ValidateAndConvertUUID(uuid)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	total, err := s.q.GetStatusesCountForUser(ctx, pgUuid)
+	total, err := s.q.GetStatusesCountForUser(ctx, *pgUuid)
 	if err != nil {
-		return nil, nil, err
+		return nil, types.NewAPIError(http.StatusInternalServerError, "error fetching status count")
 	}
 
 	pagination.Total = total
 
-	rows, err := s.q.GetStatusesForUser(ctx, queries.GetStatusesForUserParams{
-		UserUuid: pgUuid,
+	if total == 0 {
+		response := &types.PaginatedStatusesResponse{
+			Pagination: *pagination,
+			Statuses:   []types.StatusesResponse{},
+		}
+		return response, nil
+	}
+
+	items, err := s.q.GetStatusesForUser(ctx, queries.GetStatusesForUserParams{
+		UserUuid: *pgUuid,
 		Page:     pagination.Page,
 		PageSize: pagination.PageSize,
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, types.NewAPIError(http.StatusInternalServerError, "error fetching statuses")
 	}
 
-	return rows, pagination, nil
+	statuses := make([]types.StatusesResponse, len(items))
+
+	for i, item := range items {
+		statuses[i] = types.StatusesResponse{
+			UUID:  item.Uuid.String(),
+			Label: item.Label.String,
+		}
+	}
+
+	response := types.PaginatedStatusesResponse{
+		Pagination: *pagination,
+		Statuses:   statuses,
+	}
+
+	return &response, nil
 }

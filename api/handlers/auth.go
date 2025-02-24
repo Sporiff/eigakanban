@@ -40,17 +40,8 @@ func (h *AuthHandler) RegisterUser(c *gin.Context) {
 
 	user, err := h.authService.RegisterUser(c.Request.Context(), req)
 	if err != nil {
-		switch err.Error() {
-		case "user already exists":
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		case "error creating default data":
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+		helpers.HandleAPIError(c, err)
+		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"user": user})
@@ -76,33 +67,23 @@ func (h *AuthHandler) LoginUser(c *gin.Context) {
 		return
 	}
 
-	user, expiryDate, err := h.authService.LoginUser(c.Request.Context(), req.Email, req.Username, req.Password)
+	user, err := h.authService.LoginUser(c.Request.Context(), req.Email, req.Username, req.Password)
 	if err != nil {
-		switch err.Error() {
-		case "user not found":
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
-		case "invalid password":
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-			return
-		case "email and username are required":
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+		helpers.HandleAPIError(c, err)
+		return
 	}
 
 	c.Set("user_uuid", user.Uuid)
 	c.Set("superuser", user.SuperUser)
 
+	response := types.TokenResponse{
+		AccessToken:  user.AccessToken,
+		ExpiryDate:   user.ExpiryDate,
+		RefreshToken: user.RefreshToken,
+	}
+
 	// Return both tokens in the response
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":  user.AccessToken,
-		"expiry_date":   expiryDate,
-		"refresh_token": user.RefreshToken,
-	})
+	c.JSON(http.StatusOK, response)
 }
 
 // RefreshToken refreshes a user's access token by passing in a valid refresh token
@@ -113,25 +94,24 @@ func (h *AuthHandler) LoginUser(c *gin.Context) {
 //	@Accept			json
 //	@Produce		json
 //	@Param			Refresh-Token	header		string								true	"Refresh token"
-//	@Success		200				{object}	types.LogoutSuccessResponse			"Logout successful"
-//	@Failure		400				{object}	types.AlreadyLoggedOutResponse		"Already logged out"
+//	@Success		200				{object}	types.AccessTokenResponse			"New access token"
 //	@Failure		400				{object}	types.RefreshTokenMissingResponse	"Missing refresh token"
 //	@Failure		500				{object}	types.ErrorResponse
 //	@Router			/auth/refresh [post]
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	refreshToken, err := helpers.GetRefreshToken(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing refresh token"})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
-	accessToken, expiryDate, err := h.authService.CreateNewAccessToken(c, refreshToken)
+	tokenResponse, err := h.authService.CreateNewAccessToken(c, refreshToken)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "couldn't refresh access token: " + err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "expiry_date": expiryDate})
+	c.JSON(http.StatusOK, tokenResponse)
 }
 
 // LogoutUser logs out the current user by clearing their refresh token
@@ -154,16 +134,10 @@ func (h *AuthHandler) LogoutUser(c *gin.Context) {
 		return
 	}
 
-	err = h.authService.LogoutUser(c.Request.Context(), refreshToken)
+	err = h.authService.LogoutUser(c.Request.Context(), *refreshToken)
 	if err != nil {
-		switch err.Error() {
-		case "already logged out":
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+		helpers.HandleAPIError(c, err)
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "logged out successfully"})

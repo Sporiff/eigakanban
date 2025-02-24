@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	queries "codeberg.org/sporiff/eigakanban/db/sqlc"
 	"codeberg.org/sporiff/eigakanban/helpers"
 	"codeberg.org/sporiff/eigakanban/services"
 	"codeberg.org/sporiff/eigakanban/types"
@@ -35,17 +34,17 @@ func NewUsersHandler(usersService *services.UsersService) *UsersHandler {
 func (h *UsersHandler) GetAllUsers(c *gin.Context) {
 	pagination, err := helpers.ValidatePagination(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
-	users, updatedPagination, err := h.usersService.GetAllUsers(c.Request.Context(), &pagination)
+	result, err := h.usersService.GetAllUsers(c.Request.Context(), pagination)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"pagination": updatedPagination, "users": users})
+	c.JSON(http.StatusOK, result)
 }
 
 // GetUserByUuid returns a user by UUID
@@ -65,12 +64,7 @@ func (h *UsersHandler) GetUserByUuid(c *gin.Context) {
 	userUuid := c.Param("uuid")
 	user, err := h.usersService.GetUserByUuid(c.Request.Context(), userUuid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if user == (queries.GetUserByUuidRow{}) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
@@ -102,7 +96,7 @@ func (h *UsersHandler) UpdateUser(c *gin.Context) {
 
 	user, err := h.usersService.UpdateUser(c.Request.Context(), userUuid, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
@@ -125,7 +119,7 @@ func (h *UsersHandler) DeleteUser(c *gin.Context) {
 	userUuid := c.Param("uuid")
 	err := h.usersService.DeleteUser(c.Request.Context(), userUuid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 

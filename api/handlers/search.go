@@ -45,9 +45,9 @@ func (h *SearchHandler) SearchMovie(c *gin.Context) {
 		return
 	}
 
-	results, err := h.searchService.SearchMovie(&pagination, query)
+	results, err := h.searchService.SearchMovie(pagination, query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 

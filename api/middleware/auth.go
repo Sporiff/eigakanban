@@ -2,7 +2,6 @@ package middleware
 
 import (
 	queries "codeberg.org/sporiff/eigakanban/db/sqlc"
-	"codeberg.org/sporiff/eigakanban/helpers"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -44,6 +43,15 @@ func (h *AuthMiddlewareHandler) AuthRequired() gin.HandlerFunc {
 			return
 		}
 
+		// Check if the token is expired
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			exp := claims["expiry_date"].(float64)
+			if time.Now().Unix() > int64(exp) {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
+				return
+			}
+		}
+
 		var userUuid string
 		var superUser bool
 
@@ -68,16 +76,6 @@ func (h *AuthMiddlewareHandler) AuthRequired() gin.HandlerFunc {
 			userUuid = claimsUuid.(string)
 		}
 
-		// Check if the token is expired
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			exp := claims["expiry_date"].(float64)
-			if time.Now().Unix() > int64(exp) {
-				// The token has expired. Get a new token using the refresh token
-				h.handleExpiredToken(c, userUuid)
-				return
-			}
-		}
-
 		// Store the user UUID in the context
 		if token.Valid {
 			c.Set("user_uuid", userUuid)
@@ -87,55 +85,6 @@ func (h *AuthMiddlewareHandler) AuthRequired() gin.HandlerFunc {
 		// The token is valid
 		c.Next()
 	}
-}
-
-func (h *AuthMiddlewareHandler) handleExpiredToken(c *gin.Context, uuid string) {
-	refreshToken, err := helpers.GetRefreshToken(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Refresh token missing"})
-		return
-	}
-
-	// Validate the refresh token
-	fetchedToken, err := h.q.GetRefreshTokenByToken(c.Request.Context(), refreshToken)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
-		return
-	}
-
-	if time.Now().After(fetchedToken.ExpiresAt.Time) {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Refresh token expired"})
-		return
-	}
-
-	pgUuid, err := helpers.ValidateAndConvertUUID(uuid)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-		return
-	}
-
-	fetchedUser, err := h.q.GetUserByUuid(c.Request.Context(), pgUuid)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
-		return
-	}
-
-	if fetchedUser == (queries.GetUserByUuidRow{}) {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
-		return
-	}
-
-	newAccessToken, _, err := helpers.GenerateAccessToken(fetchedUser)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
-		return
-	}
-
-	// Attach the new access token to the response headers
-	c.Header("New-Access-Token", newAccessToken)
-	// Set user UUID in context
-	c.Set("user_uuid", fetchedUser.Uuid.String())
-	c.Next()
 }
 
 func (h *AuthMiddlewareHandler) extractAuthToken(c *gin.Context) (*jwt.Token, error) {

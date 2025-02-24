@@ -37,13 +37,13 @@ func (h *ListItemsHandler) GetAllListItems(c *gin.Context) {
 		return
 	}
 
-	listItems, updatedPagination, err := h.listItemsService.GetAllListItems(c.Request.Context(), &pagination)
+	response, err := h.listItemsService.GetAllListItems(c.Request.Context(), pagination)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"pagination": updatedPagination, "list_items": listItems})
+	c.JSON(http.StatusOK, response)
 }
 
 // GetListItemsForList returns all items in a list
@@ -69,11 +69,11 @@ func (h *ListItemsHandler) GetListItemsForList(c *gin.Context) {
 		return
 	}
 
-	listItems, updatedPagination, err := h.listItemsService.GetListItemsForList(c.Request.Context(), &pagination, listUuid)
+	response, err := h.listItemsService.GetListItemsForList(c.Request.Context(), pagination, listUuid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"pagination": updatedPagination, "list_items": listItems})
+	c.JSON(http.StatusOK, response)
 }

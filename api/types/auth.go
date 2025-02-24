@@ -4,17 +4,33 @@ import "github.com/golang-jwt/jwt/v5"
 
 // AuthenticatedUserResponse represents the data passed back when logging in
 type AuthenticatedUserResponse struct {
-	Uuid         string
-	AccessToken  string
-	RefreshToken string
+	Uuid         string `json:"uuid" example:"00000000-0000-0000-0000-000000000000"`
+	AccessToken  string `json:"access_token" example:"00000000-0000-0000-0000-000000000000"`
+	RefreshToken string `json:"refresh_token" example:"00000000-0000-0000-0000-000000000000"`
+	ExpiryDate   string `json:"expiry_date" example:"2025-02-15 11:59:01.837871 +0100 CET m=+3603.614509085"`
 	SuperUser    bool
 }
 
-func (r *AuthenticatedUserResponse) Init(uuid, accessToken, refreshToken string, superUser bool) {
-	r.Uuid = uuid
-	r.AccessToken = accessToken
-	r.RefreshToken = refreshToken
-	r.SuperUser = superUser
+func NewAuthenticateUserResponse(uuid, accessToken, refreshToken, expiryDate string, superUser bool) *AuthenticatedUserResponse {
+	return &AuthenticatedUserResponse{
+		Uuid:         uuid,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiryDate:   expiryDate,
+		SuperUser:    superUser,
+	}
+}
+
+type AccessTokenResponse struct {
+	AccessToken string `json:"access_token" example:"00000000-0000-0000-0000-000000000000"`
+	ExpiryDate  string `json:"expiry_date" example:"2025-02-15 11:59:01.837871 +0100 CET m=+3603.614509085"`
+}
+
+func NewAccessTokenResponse(accessToken, expiryDate string) *AccessTokenResponse {
+	return &AccessTokenResponse{
+		AccessToken: accessToken,
+		ExpiryDate:  expiryDate,
+	}
 }
 
 // TokenClaims represents the claims stored in the JWT token

@@ -1,8 +1,10 @@
 package helpers
 
 import (
+	"codeberg.org/sporiff/eigakanban/types"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"net/http"
 )
 
 func MakePgString(s string) pgtype.Text {
@@ -12,24 +14,18 @@ func MakePgString(s string) pgtype.Text {
 	return pgtype.Text{String: s, Valid: true}
 }
 
-func ValidateAndConvertUUID(uuidString string) (pgtype.UUID, error) {
-	pgUuid := pgtype.UUID{}
+func ValidateAndConvertUUID(uuidString string) (*pgtype.UUID, error) {
 	parsedUuid, err := uuid.Parse(uuidString)
 	if err != nil {
-		return pgUuid, err
+		return nil, types.NewAPIError(http.StatusInternalServerError, "error validating uuid")
 	}
-	copy(pgUuid.Bytes[:], parsedUuid[:])
-	pgUuid.Valid = true
-	return pgUuid, nil
-}
 
-// AssignIfNotNil assigns values to a field if its current value is nil
-func AssignIfNotNil[T any](dest *T, src *T, defaultValue T) {
-	if src != nil {
-		*dest = *src
-	} else {
-		*dest = defaultValue
+	result := pgtype.UUID{
+		Bytes: parsedUuid,
+		Valid: true,
 	}
+
+	return &result, nil
 }
 
 // AssignPgtypeText assigns postgres text type values assigns values to a field if its current value is nil

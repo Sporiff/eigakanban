@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	queries "codeberg.org/sporiff/eigakanban/db/sqlc"
 	"codeberg.org/sporiff/eigakanban/helpers"
 	"codeberg.org/sporiff/eigakanban/services"
 	"codeberg.org/sporiff/eigakanban/types"
@@ -36,17 +35,17 @@ func NewItemsHandler(itemsService *services.ItemsService) *ItemsHandler {
 func (h *ItemsHandler) GetAllItems(c *gin.Context) {
 	pagination, err := helpers.ValidatePagination(c)
 	if err != nil {
-		helpers.HandleValidationError(c, err)
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
-	items, updatedPagination, err := h.itemsService.GetAllItems(c.Request.Context(), &pagination)
+	result, err := h.itemsService.GetAllItems(c.Request.Context(), pagination)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"pagination": updatedPagination, "items": items})
+	c.JSON(http.StatusOK, result)
 }
 
 // GetItemByUuid returns an item by UUID
@@ -66,12 +65,7 @@ func (h *ItemsHandler) GetItemByUuid(c *gin.Context) {
 	itemUuid := c.Param("uuid")
 	item, err := h.itemsService.GetItemByUuid(c.Request.Context(), itemUuid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if item == (queries.GetItemByUuidRow{}) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "item not found"})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
@@ -100,7 +94,7 @@ func (h *ItemsHandler) AddItem(c *gin.Context) {
 
 	item, err := h.itemsService.AddItem(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
@@ -131,7 +125,7 @@ func (h *ItemsHandler) UpdateItem(c *gin.Context) {
 	itemUuid := c.Param("uuid")
 	item, err := h.itemsService.UpdateItem(c.Request.Context(), itemUuid, req.ItemTitle)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
@@ -154,7 +148,7 @@ func (h *ItemsHandler) DeleteItem(c *gin.Context) {
 	itemUuid := c.Param("uuid")
 	err := h.itemsService.DeleteItem(c.Request.Context(), itemUuid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 

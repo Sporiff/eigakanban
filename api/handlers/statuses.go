@@ -34,7 +34,7 @@ func NewStatusesHandler(statusesService *services.StatusesService) *StatusesHand
 func (h *StatusesHandler) AddStatus(c *gin.Context) {
 	userUuid, err := helpers.ValidateUserUuidFromClaims(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
@@ -44,13 +44,13 @@ func (h *StatusesHandler) AddStatus(c *gin.Context) {
 		return
 	}
 
-	status, err := h.statusesService.AddStatus(c.Request.Context(), req, userUuid)
+	result, err := h.statusesService.AddStatus(c.Request.Context(), req, *userUuid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": status})
+	c.JSON(http.StatusCreated, result)
 }
 
 // GetStatusesForUser fetches all statuses belonging to the authenticated user
@@ -68,21 +68,21 @@ func (h *StatusesHandler) AddStatus(c *gin.Context) {
 func (h *StatusesHandler) GetStatusesForUser(c *gin.Context) {
 	userUuid, err := helpers.ValidateUserUuidFromClaims(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "you are not authorized to access this resource"})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
 	pagination, err := helpers.ValidatePagination(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
-	statuses, updatedPagination, err := h.statusesService.GetStatusesForUser(c.Request.Context(), userUuid, &pagination)
+	result, err := h.statusesService.GetStatusesForUser(c.Request.Context(), *userUuid, pagination)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helpers.HandleAPIError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"pagination": updatedPagination, "statuses": statuses})
+	c.JSON(http.StatusOK, result)
 }

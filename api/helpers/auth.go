@@ -2,6 +2,7 @@ package helpers
 
 import (
 	queries "codeberg.org/sporiff/eigakanban/db/sqlc"
+	"codeberg.org/sporiff/eigakanban/types"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/crypto/bcrypt"
+	"net/http"
 	"time"
 )
 
@@ -60,35 +62,36 @@ func GenerateAccessToken(user interface{}) (string, string, error) {
 }
 
 // GenerateRefreshToken creates a new refresh token for logged-in users
-func GenerateRefreshToken(length int) (string, error) {
+func GenerateRefreshToken(length int) (*string, error) {
 	b := make([]byte, length)
 	_, err := rand.Read(b)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return hex.EncodeToString(b), nil
+	refreshToken := hex.EncodeToString(b)
+	return &refreshToken, nil
 }
 
 // ValidateUserUuidFromClaims validates the user UUID from the claims is present and of the correct type
-func ValidateUserUuidFromClaims(c *gin.Context) (string, error) {
+func ValidateUserUuidFromClaims(c *gin.Context) (*string, error) {
 	// If the claim is missing, return an error
 	userUuid, exists := c.Get("user_uuid")
 	if !exists {
-		return "", errors.New("missing user uuid")
+		return nil, types.NewAPIError(http.StatusBadRequest, "missing user uuid")
 	}
 
 	// Verify that the user_uuid is a string value
 	switch v := userUuid.(type) {
 	case string:
-		return v, nil
+		return &v, nil
 	default:
-		return "", errors.New("invalid user uuid")
+		return nil, types.NewAPIError(http.StatusBadRequest, "invalid user uuid")
 	}
 }
 
 // GetRefreshToken retrieves the refresh token from the browser cookies.
 // Falls back to using the Refresh-Token header for API clients
-func GetRefreshToken(c *gin.Context) (string, error) {
+func GetRefreshToken(c *gin.Context) (*string, error) {
 	var refreshToken string
 
 	cookie, err := c.Cookie("refresh_token")
@@ -97,9 +100,9 @@ func GetRefreshToken(c *gin.Context) (string, error) {
 	} else {
 		refreshToken = c.GetHeader("Refresh-Token")
 		if refreshToken == "" {
-			return "", errors.New("missing refresh token")
+			return nil, types.NewAPIError(http.StatusBadRequest, "missing refresh token")
 		}
 	}
 
-	return refreshToken, nil
+	return &refreshToken, nil
 }
