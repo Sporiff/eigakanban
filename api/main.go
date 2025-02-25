@@ -12,6 +12,10 @@ import (
 	"net/http"
 )
 
+//go:generate go tool github.com/sqlc-dev/sqlc/cmd/sqlc generate # Generate the SQL queries
+//go:generate go tool github.com/swaggo/swag/cmd/swag fmt # Format OpenAPI decorators
+//go:generate go tool github.com/swaggo/swag/cmd/swag init # Generate API documentation
+
 //	@title			eigakanban API
 //	@version		1.0
 //	@description	The REST API for the eigakanban server

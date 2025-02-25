@@ -1,13 +1,8 @@
 GO=go
-SQLC=sqlc
-GOOSE=goose
-SWAG=swag
+GOOSE=${GO} tool github.com/pressly/goose/v3/cmd/goose
+SWAG=${GO} tool github.com/swaggo/swag/cmd/swag
 
 .PHONY: sqlc-generate goose-up goose-down swag-fmt swag-init go-run go-build
-
-# Generate SQL code
-sqlc-generate:
-	$(SQLC) generate
 
 # Run migrations
 goose-up:
@@ -17,22 +12,11 @@ goose-up:
 goose-down:
 	$(GOOSE) down
 
-# Format code and Swagger docs
-swag-fmt:
-	$(SWAG) fmt && $(GO) fmt
-
-# Initialize Swagger docs
-swag-init:
-	$(SWAG) init
-
-# Populate the database with dummy values
-go-populate:
-	$(GO) run scripts/insert_dummy_data.go
-
 # Run the server
 go-run:
-	$(GO) run main.go
+	./scripts/start.sh
 
 # Build the project
 go-build:
+	$(GO) generate
 	$(GO) build -o eigakanban

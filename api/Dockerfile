@@ -5,11 +5,10 @@ WORKDIR /app
 COPY go.mod go.sum ./
 
 RUN go mod download
-RUN go install github.com/pressly/goose/v3/cmd/goose@latest
 
 COPY . .
 
-RUN goose up
+RUN go tool github.com/pressly/goose/v3/cmd/goose up
 RUN CGO_ENABLED=0 GOOS=linux go build -o /eigakanban
 
 FROM golang:1.24-alpine AS go-dev
@@ -19,8 +18,6 @@ WORKDIR /app
 COPY go.mod go.sum ./
 
 RUN go mod download
-RUN go install github.com/air-verse/air@latest
-RUN go install github.com/pressly/goose/v3/cmd/goose@latest
 
 COPY . .
 
